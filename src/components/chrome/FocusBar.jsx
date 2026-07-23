@@ -54,7 +54,7 @@ export default function FocusBar() {
   const closeLabel = isProject ? 'Collapse project details' : 'Close';
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-20 flex justify-center px-8">
+    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-10 flex justify-center px-8">
       <div className="flex w-full max-w-[400px] items-center gap-2">
 
         <div ref={barRef} className="flex-1" style={{ transformOrigin: '50% 50%' }}>
