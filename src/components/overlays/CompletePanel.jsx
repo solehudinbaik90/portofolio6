@@ -27,7 +27,7 @@ export default function CompletePanel() {
   }, [isOpen]);
 
   return (
-    <div className="pointer-events-none fixed bottom-[112px] right-8 z-10">
+    <div className="pointer-events-none fixed bottom-[112px] right-8 z-20">
       <div
         ref={ref}
         role="dialog"
