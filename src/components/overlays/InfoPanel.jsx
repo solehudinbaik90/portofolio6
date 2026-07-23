@@ -37,7 +37,7 @@ export default function InfoPanel() {
   }, [isOpen]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[112px] top-[112px] z-20 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[112px] top-[112px] z-10 flex justify-center px-4">
       <div
         ref={ref}
         role="dialog"
