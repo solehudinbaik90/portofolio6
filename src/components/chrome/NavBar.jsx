@@ -95,7 +95,7 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="pointer-events-none fixed inset-x-0 top-8 z-10 flex justify-center">
+    <nav className="pointer-events-none fixed inset-x-0 top-8 z-20 flex justify-center">
       <ul className="pointer-events-none flex gap-2">
 
         <li ref={infoRef}>
