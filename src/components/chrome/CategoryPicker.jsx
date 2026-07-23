@@ -62,7 +62,7 @@ export default function CategoryPicker() {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-20 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-0 bottom-8 z-10 flex justify-center">
       <ul className="pointer-events-none flex">
         <li>
           <button
