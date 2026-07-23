@@ -24,16 +24,16 @@ export default function App() {
           <DiscoveryProvider>
             <Board />
             <FocusView />
-            {/* <Backdrop /> */}
-            {/* <InfoPanel /> */}
-            {/* <ContactPanel /> */}
-            {/* <CompletePanel /> */}
-            {/* <ProjectPanel /> */}
+            <Backdrop />
+            <InfoPanel />
+            <ContactPanel />
+            <CompletePanel />
+            <ProjectPanel />
             <NavBar />
             <ChromeOverlay />
             <DiscoveryCounter />
-            {/* <LoadingScreen /> */}
-            {/* <MouseTrail /> */}
+            <LoadingScreen />
+            <MouseTrail />
             <Analytics />
           </DiscoveryProvider>
         </FocusProvider>
