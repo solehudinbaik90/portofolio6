@@ -1,0 +1,15 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cp1">
+			<path d="m0 0h24v24h-24z"/>
+		</clipPath>
+		<image width="32" height="32" id="img1" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAABI1JREFUWEfFl1tsVUUUhr9GI9q0NSbGuzZWYlHCg4Iab62YELFgvGAwpiZeKzzogxo1UOOTVo0CRiCKAhrwQeMNihCiRq14SaPxQaoCGlONl2ibxkNIvfXi/HvWnE6HfU57MMSddDPMmb32P//61z9rV/E/X1VADfAMcBFQn4PnQ2Ax8GUFWKdHMfMeKwBZXAF4sQFaT8lZ9g/wkZ/X4osrAHA3sKwZ0Avyrn6gB7bq994GqH+3xPZnAp/7CLcDz00CRPbyJqCrxGJt/zKgGwoZA0DrMfbAtOShDcCNfi4aloXxOnB1dstZ9gtwKbDL/5YxEDTQejOwPnnob7ftE4F+iIYlAcwHtiidvcBPwEnJ0g6g3c9p+HRI0SHA0C3AupzYDwAP+/nXXOquLbP/R4H7sxvwCLCkPID2WCOjpQD8CpwAjICGx5UBUJgCdb95xlC89ysBEFIgkRyZPLgQeMXPaWNLc0ColBfd6mhf6wDcAXzh8v3BgQB4NYfnHYCUDUTDcdF7HMbpup1sjJ19oADm2W6rE/RnAl/7OW001mtWepcA7wFPAne5sXwgTUFEXzYcp4GQgtmOvmuAOxMAz1tenWVEw2xRsfSucnU9FfjuvwL4Afg2cbK/jNoB0PBYt1HJ5QqgU+X2PbDNJoA3m2F+RQyEKpBRiEoFuzxhQWWlMgNeAq4HHgPuy27Ouue4Q+Udeyak4Cvgd+CC8QrePwUpAL1cIOLrR7PsEdBQeiuWnoxHOjGpnBEAiM0+YAD4bKyEJgYggSgNDQkIOZEcyfypvc2l5lk7Mtf4eZ0ZbbOsHD92nnsOcLyVptXwxAAUSUJ8KgGgQ0aKt+OjWRTLrvWCQdgLHAUMi4EH7U8+LlRitBIAg9VQLfpKlWQovSeAez2oMBwNKZA3vG3VoXElAFaKBDGQlqTcTtSr/q40XUgUgCpxM1AEoIlzbRN/VAjgOuBlaSCvJOV0O4FN7t8F/uXCY8MxAGqlFrkUSR+d5QDERmT1Kx1uBVqyW6IFqV65Vxqs+ZAjrrBlozNMwEIksBKj0hkdx/mnYfAB8yGVfkdeSYZ6i0rPhhmEYgpWuwCHWYMiIU6oAVlxxICCfVMFU/eYkGIiHjcDAqKhB6DDS5TLoGSZ0pL6jQkBJAwomLz/prySVON6IfCpR6Uj5I2QAlWB1D/X3FOGpE3kAZgC/JmjgcNdUyPf1+99NVD7szv2ahMtLAfu8XNhmMU732iXFsSonEd/qQZkp2omWlIrdl6/O/TvFny/ktzu7FWN4PAYAzrN9Y3RqAa321hYBZxnjU7EwIaiyrV4i+VYJfcQsNG3YbqUurdUkqdZSWpStKsCBv0atY6nqldQg3mDOx3F6CfA0e7EOsJsWH2CrNy+N7oEoNAEdXp5XUKttq+62uaZEMZiSZ4OiGL1flZ6WrqrBRqVh8Yk1j6jUnoQWwK3EYaLDCTr0/+Kgdusye04y1StpgN4weJpLINUtzTZK2MgaEB5yyMhfBsOWVT5gtaKhPCbhKrr0OibMCUhBiUSit+Gk0V7UNaV+nY8KC/LC/ovDaJgjA+wnBgAAAAASUVORK5CYII="/>
+	</defs>
+	<style>
+	</style>
+	<g id="Clip-Path" clip-path="url(#cp1)">
+		<g>
+			<use id="favicoon.psd" href="#img1" transform="matrix(.75,0,0,.75,0,0)"/>
+		</g>
+	</g>
+</svg>
