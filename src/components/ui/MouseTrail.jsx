@@ -87,11 +87,11 @@ export default function MouseTrail() {
     <>
       <canvas
         ref={canvasRef}
-        className="pointer-events-none fixed inset-0 z-[10]"
+        className="pointer-events-none fixed inset-0 z-[9998]"
       />
       <div
         ref={dotRef}
-        className="ui-shadow pointer-events-none fixed left-0 top-0 z-[20] rounded-full bg-white opacity-0"
+        className="ui-shadow pointer-events-none fixed left-0 top-0 z-[9999] rounded-full bg-white opacity-0"
         style={{
           width: CURSOR_SIZE,
           height: CURSOR_SIZE,
