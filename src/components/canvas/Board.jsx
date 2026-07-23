@@ -345,7 +345,7 @@ export default function Board() {
     <div
       ref={wrapRef}
       className="fixed inset-0 cursor-grab touch-none select-none overflow-hidden"
-      style={{ backgroundColor: '#000000', zIndex: 999, border: '6px solid red', position: 'fixed', inset: 0 }}
+      style={{ backgroundColor: '#000000', zIndex: 50, border: '6px solid red', position: 'fixed', inset: 0 }}
     >
       <div
         ref={innerRef}
