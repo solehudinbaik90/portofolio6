@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 const CONTACTS = [
-  { label: 'email', copyText: 'hello@hamzatariq.info', copiedLabel: 'copied', bg: '#3399FF', iconSrc: '/media/icons/MAIL.svg' },
+  { label: 'email', copyText: 'solehudinz3692@gmail.com', copiedLabel: 'copied', bg: '#3399FF', iconSrc: '/media/icons/MAIL.svg' },
   {
     label: 'instagram', href: 'https://instagram.com/msoleh321', bg: '#e1306c',
     Icon: ({ className }) => (
