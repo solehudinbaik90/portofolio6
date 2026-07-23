@@ -34,7 +34,7 @@ export default function LoadingScreen() {
     return () => { clearTimeout(id); tl?.kill(); };
   }, [ready, revealChrome]);
 
-  if (gone) return null;
+  if (gone || true) return null;
 
   return (
     <>
