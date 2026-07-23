@@ -2,10 +2,10 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 
 const CATEGORY_PATHS = { everything: '/', brand: '/brand', product: '/product', web: '/web' };
 const CATEGORY_TITLES = {
-  everything: 'Hamza T. — Design etc.',
-  brand: 'Hamza T. — Design for Brand',
-  product: 'Hamza T. — Design for Product',
-  web: 'Hamza T. — Design for Web',
+  everything: 'Muhamad Soleh. — Guru Fisika.',
+  brand: 'Muhamad Soleh. — Desain untuk Brand',
+  product: 'Muhamad Soleh. — Desain untuk Produk',
+  web: 'Muhamad Soleh. — Desain untuk Web',
 };
 
 function pathToCategory(pathname) {
