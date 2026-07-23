@@ -344,7 +344,7 @@ export default function Board() {
   return (
     <div
       ref={wrapRef}
-      className="fixed inset-0 cursor-grab touch-none select-none overflow-hidden z-0"
+      className="fixed inset-0 cursor-grab touch-none select-none overflow-hidden"
       style={{ backgroundColor: '#f1f1f1' }}
     >
       <div
