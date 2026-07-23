@@ -34,18 +34,18 @@ export default function LoadingScreen() {
     return () => { clearTimeout(id); tl?.kill(); };
   }, [ready, revealChrome]);
 
-  if (gone || true) return null;
+  if (gone) return null;
 
   return (
     <>
-      <div ref={overlayRef} className="fixed inset-0 z-5 bg-[#DDDDDD]" aria-hidden={ready}>
+      <div ref={overlayRef} className="fixed inset-0 z-50 bg-[#DDDDDD]" aria-hidden={ready}>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <div ref={counterRef} className="text-center text-[96px] leading-none tracking-[-0.02em] text-black" style={{ willChange: 'transform, opacity' }}>
             0%
           </div>
         </div>
       </div>
-      <img ref={logoRef} src="/media/icons/logo.svg" alt="" className="fixed left-1/2 top-[52px] z-5 -translate-x-1/2" style={{ willChange: 'transform, opacity' }} />
+      <img ref={logoRef} src="/media/icons/logo.svg" alt="" className="fixed left-1/2 top-[52px] z-50 -translate-x-1/2" style={{ willChange: 'transform, opacity' }} />
     </>
   );
 }
