@@ -33,7 +33,7 @@ export default function App() {
             <ChromeOverlay />
             <DiscoveryCounter />
             {/* <LoadingScreen /> */}
-            <MouseTrail />
+            {/* <MouseTrail /> */}
             <Analytics />
           </DiscoveryProvider>
         </FocusProvider>
