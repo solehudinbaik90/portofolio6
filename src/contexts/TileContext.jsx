@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ALL_TILES } from '../data/tiles';
-import { usePopup } from './PopupContext';
-import { detectSize } from '../utils/media';
+import { ALL_TILES } from '../data/tiles'; 
+import { usePopup } from './PopupContext';   
+import { detectSize } from '../utils/media'; 
 import { distributeToColumns } from '../utils/layout';
 
 const NUM_COLS = 7;
-const TRANSITION_DURATION = 0.6 * 0.8; // Na * Ia
+const TRANSITION_DURATION = 0.6 * 0.8;
 
 const TileContext = createContext(null);
 
@@ -35,20 +35,45 @@ export function TileProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     let loaded = 0;
-    Promise.all(
-      ALL_TILES.map(async (tile) => {
-        const size = await detectSize(tile.media);
-        if (!cancelled) { loaded++; setProgress(loaded / ALL_TILES.length); }
+    const totalTiles = ALL_TILES ? ALL_TILES.length : 0;
+
+    // PROTEKSI 1: Jika ALL_TILES belum ada isinya, langsung selesaikan loading screen secara aman
+    if (totalTiles === 0) {
+      setProgress(1);
+      setReady(true);
+      return;
+    }
+
+    const loadAllTiles = async () => {
+      const promises = ALL_TILES.map(async (tile) => {
+        let size = { width: 0, height: 0 };
+        try {
+          size = await detectSize(tile.media);
+        } catch (err) {
+          console.error(`[TileContext] Gagal memuat media: ${tile.media}`, err);
+        } finally {
+          // PROTEKSI 2: Progress counter tetap berjalan maju meski ada media yang error/404
+          if (!cancelled) {
+            loaded++;
+            setProgress(loaded / totalTiles);
+          }
+        }
         return { ...tile, size };
-      })
-    ).then((result) => {
-      if (!cancelled) {
-        setTiles(shuffled(result));
-        setReady(true);
+      });
+
+      try {
+        const result = await Promise.all(promises);
+        if (!cancelled) {
+          setTiles(shuffled(result));
+          setReady(true);
+        }
+      } catch (globalError) {
+        console.error("[TileContext] Kritis pada Promise.all:", globalError);
+        if (!cancelled) setError('Failed to process tiles');
       }
-    }).catch(() => {
-      if (!cancelled) setError('Failed to load tiles');
-    });
+    };
+
+    loadAllTiles();
     return () => { cancelled = true; };
   }, []);
 
