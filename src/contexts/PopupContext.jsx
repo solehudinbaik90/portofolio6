@@ -1,11 +1,17 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
-const CATEGORY_PATHS = { everything: '/', brand: '/brand', product: '/product', web: '/web' };
+const CATEGORY_PATHS = {
+  everything: '/',
+  brand: '/brand',
+  product: '/product',
+  web: '/web',
+};
+
 const CATEGORY_TITLES = {
-  everything: 'Muhamad Soleh. — Guru Fisika.',
-  brand: 'Muhamad Soleh. — Desain untuk Brand',
-  product: 'Muhamad Soleh. — Desain untuk Produk',
-  web: 'Muhamad Soleh. — Desain untuk Web',
+  everything: 'Hamza T. — Design etc.',
+  brand: 'Hamza T. — Design for Brand',
+  product: 'Hamza T. — Design for Product',
+  web: 'Hamza T. — Design for Web',
 };
 
 function pathToCategory(pathname) {
@@ -18,7 +24,9 @@ const PopupContext = createContext(null);
 export function PopupProvider({ children }) {
   const [popup, setPopup] = useState(null);
   const [category, setCategory] = useState(() =>
-    typeof window !== 'undefined' ? pathToCategory(window.location.pathname) : 'everything'
+    typeof window !== 'undefined'
+      ? pathToCategory(window.location.pathname)
+      : 'everything'
   );
 
   const changeCategory = useCallback((cat) => {
@@ -36,7 +44,7 @@ export function PopupProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    document.title = CATEGORY_TITLES[category];
+    document.title = CATEGORY_TITLES[category] ?? CATEGORY_TITLES.everything;
   }, [category]);
 
   return (
