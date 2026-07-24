@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useTiles } from '../../contexts/TileContext';
-
-useEffect(() => {
-  console.log('ready:', ready, 'progress:', progress);
-}, [ready, progress]);
-
 export default function LoadingScreen() {
   const { progress, ready, revealChrome } = useTiles();
   const [gone, setGone] = useState(false);
@@ -14,6 +9,10 @@ export default function LoadingScreen() {
   const logoRef = useRef(null);
   const bootTime = useRef(performance.now());
 
+  useEffect(() => {
+  console.log('ready:', ready, 'progress:', progress);
+}, [ready, progress]);
+  
   useLayoutEffect(() => {
     gsap.set([counterRef.current, logoRef.current], { scale: 0, opacity: 0 });
     const tl = gsap.timeline();
