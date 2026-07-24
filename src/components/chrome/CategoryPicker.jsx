@@ -1,14 +1,15 @@
-import { useRef, useState, useLayoutEffect } from 'react';
+import { useRef, useState, useLayoutEffect, useEffect } from 'react';
 import gsap from 'gsap';
 import { usePopup } from '../../contexts/PopupContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useFocus } from '../../contexts/FocusContext';
+import { track } from '@vercel/analytics';
 
 const CATEGORIES = [
-  { category: 'everything', label: 'All', icon: '/media/icons/ALL.svg' },
-  { category: 'product', label: 'Product', icon: '/media/icons/PRODUCT.svg' },
-  { category: 'brand', label: 'Brand', icon: '/media/icons/BRAND.svg' },
-  { category: 'web', label: 'Web', icon: '/media/icons/WEB.svg' },
+  { category: 'everything', label: 'All',     icon: '/media/icons/ALL.svg'     },
+  { category: 'product',    label: 'Product', icon: '/media/icons/PRODUCT.svg' },
+  { category: 'brand',      label: 'Brand',   icon: '/media/icons/BRAND.svg'   },
+  { category: 'web',        label: 'Web',     icon: '/media/icons/WEB.svg'     },
 ];
 
 export default function CategoryPicker() {
@@ -17,17 +18,32 @@ export default function CategoryPicker() {
   const { transitioning } = useTiles();
 
   const focusActive = focusedId !== null && !isClosing;
-  const isVisible = !focusActive && !(popup === 'info' || popup === 'contact' || popup === 'complete');
+  const isVisible =
+    !focusActive &&
+    !(popup === 'info' || popup === 'contact' || popup === 'complete');
 
   const [activeIdx, setActiveIdx] = useState(() => {
     const i = CATEGORIES.findIndex((c) => c.category === category);
     return i === -1 ? 0 : i;
   });
 
-  useLayoutEffect(() => {
+
+  useEffect(() => {
     const i = CATEGORIES.findIndex((c) => c.category === category);
     if (i !== -1) setActiveIdx(i);
   }, [category]);
+
+
+  const [displayIdx, setDisplayIdx] = useState(activeIdx);
+  const wasTransitioning = useRef(false);
+
+  useLayoutEffect(() => {
+    if (wasTransitioning.current && !transitioning) {
+      setDisplayIdx(activeIdx);
+    }
+    wasTransitioning.current = transitioning;
+  }, [transitioning, activeIdx]);
+
 
   const pillRef = useRef(null);
   const labelRef = useRef(null);
@@ -42,23 +58,43 @@ export default function CategoryPicker() {
       gsap.set(el, { scale: +!!isVisible, opacity: +!!isVisible });
       return;
     }
-    gsap.to(el, { scale: +!!isVisible, duration: isVisible ? 0.4 : 0.3, ease: isVisible ? 'power2.out' : 'power2.in' });
-    gsap.to(el, { opacity: +!!isVisible, duration: isVisible ? 0.3 : 0.2, ease: isVisible ? 'power2.out' : 'power2.in' });
+    gsap.to(el, {
+      scale:    +!!isVisible,
+      duration: isVisible ? 0.4 : 0.3,
+      ease:     isVisible ? 'power2.out' : 'power2.in',
+    });
+    gsap.to(el, {
+      opacity:  +!!isVisible,
+      duration: isVisible ? 0.3 : 0.2,
+      ease:     isVisible ? 'power2.out' : 'power2.in',
+    });
   }, [isVisible]);
 
-  const [displayIdx, setDisplayIdx] = useState(activeIdx);
-  const transRef = useRef(transitioning);
+
+  const labelInit = useRef(false);
   useLayoutEffect(() => {
-    if (transRef.current && !transitioning) {
-      setDisplayIdx(activeIdx);
+    const labelEl = labelRef.current;
+    const iconEl  = iconGroupRef.current;
+    if (!labelEl || !iconEl) return;
+
+    if (!labelInit.current) {
+      labelInit.current = true;
+      gsap.set([labelEl, iconEl], { scale: 1, opacity: 1 });
+      return;
     }
-    transRef.current = transitioning;
-  }, [transitioning, activeIdx]);
+
+    if (transitioning) {
+      gsap.to([labelEl, iconEl], { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' });
+    } else {
+      gsap.to([labelEl, iconEl], { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' });
+    }
+  }, [transitioning]);
 
   const cycle = () => {
     const next = (activeIdx + 1) % CATEGORIES.length;
     setActiveIdx(next);
     setCategory(CATEGORIES[next].category);
+    track('category_changed', { category: CATEGORIES[next].category });
   };
 
   return (
@@ -75,11 +111,24 @@ export default function CategoryPicker() {
             className="btn-interactive flex h-16 w-[200px] items-center justify-center rounded-full bg-white px-5 text-black"
           >
             <div className="flex w-full items-center justify-between">
-              <span ref={labelRef} className="text-[20px] leading-[120%]" style={{ transformOrigin: '0% 50%' }}>
+              <span
+                ref={labelRef}
+                className="text-[20px] leading-[120%]"
+                style={{ transformOrigin: '0% 50%' }}
+              >
                 {CATEGORIES[displayIdx].label}
               </span>
-              <span ref={iconGroupRef} className="flex shrink-0 items-center gap-1" style={{ transformOrigin: '100% 50%' }}>
-                <img src="/media/icons/FOLDER.svg" alt="" draggable={false} className="size-6 shrink-0" />
+              <span
+                ref={iconGroupRef}
+                className="flex shrink-0 items-center gap-1"
+                style={{ transformOrigin: '100% 50%' }}
+              >
+                <img
+                  src="/media/icons/FOLDER.svg"
+                  alt=""
+                  draggable={false}
+                  className="size-6 shrink-0"
+                />
                 <span className="relative size-6 shrink-0">
                   {CATEGORIES.map((c, i) => (
                     <img
