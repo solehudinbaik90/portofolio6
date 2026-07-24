@@ -1,11 +1,20 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import { ALL_TILES } from '../data/tiles';
 import { usePopup } from './PopupContext';
 import { detectSize } from '../utils/media';
 import { distributeToColumns } from '../utils/layout';
 
 const NUM_COLS = 7;
-const TRANSITION_DURATION = 0.6 * 0.8; // Na * Ia
+
+const TRANSITION_DURATION = 0.6 * 0.8;
 
 const TileContext = createContext(null);
 
@@ -28,17 +37,34 @@ export function TileProvider({ children }) {
   const [transitioning, setTransitioning] = useState(false);
   const [activeCategory, setActiveCategory] = useState(category);
   const [chromeRevealed, setChromeRevealed] = useState(false);
+
   const categoryRef = useRef(category);
   categoryRef.current = category;
   const inTransition = useRef(false);
 
+
+  const [validationError] = useState(() => {
+    return null;
+  });
+
   useEffect(() => {
     let cancelled = false;
     let loaded = 0;
+    const total = ALL_TILES.length;
+
+    if (total === 0) {
+      setProgress(1);
+      setReady(true);
+      return;
+    }
+
     Promise.all(
       ALL_TILES.map(async (tile) => {
         const size = await detectSize(tile.media);
-        if (!cancelled) { loaded++; setProgress(loaded / ALL_TILES.length); }
+        if (!cancelled) {
+          loaded++;
+          setProgress(loaded / total);
+        }
         return { ...tile, size };
       })
     ).then((result) => {
@@ -46,17 +72,18 @@ export function TileProvider({ children }) {
         setTiles(shuffled(result));
         setReady(true);
       }
-    }).catch(() => {
-      if (!cancelled) setError('Failed to load tiles');
     });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const triggerTransition = useCallback(() => {
     if (inTransition.current) return;
     inTransition.current = true;
     setTransitioning(true);
-    setTimeout(() => {
+    window.setTimeout(() => {
       setActiveCategory(categoryRef.current);
       setNonce((n) => n + 1);
       setTransitioning(false);
@@ -71,14 +98,31 @@ export function TileProvider({ children }) {
   const revealChrome = useCallback(() => setChromeRevealed(true), []);
 
   const filteredTiles = useMemo(
-    () => (activeCategory === 'everything' ? tiles : tiles.filter((t) => t.category === activeCategory)),
+    () =>
+      activeCategory === 'everything'
+        ? tiles
+        : tiles.filter((t) => t.category === activeCategory),
     [tiles, activeCategory]
   );
 
-  const columns = useMemo(() => distributeToColumns(filteredTiles, NUM_COLS), [filteredTiles]);
+  const columns = useMemo(
+    () => distributeToColumns(filteredTiles, NUM_COLS),
+    [filteredTiles]
+  );
 
   return (
-    <TileContext.Provider value={{ columns, nonce, transitioning, error, progress, ready, chromeRevealed, revealChrome }}>
+    <TileContext.Provider
+      value={{
+        columns,
+        nonce,
+        transitioning,
+        error: error || validationError,
+        progress,
+        ready,
+        chromeRevealed,
+        revealChrome,
+      }}
+    >
       {children}
     </TileContext.Provider>
   );
