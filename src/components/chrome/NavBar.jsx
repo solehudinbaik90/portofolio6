@@ -217,8 +217,6 @@ export default function NavBar() {
       }
 
       showMagic8(response);
-      return;
-    }
 
     if (focusActive) {
       setFocusedId(null);
