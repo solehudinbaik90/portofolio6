@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useTiles } from '../../contexts/TileContext';
 
+useEffect(() => {
+  console.log('ready:', ready, 'progress:', progress);
+}, [ready, progress]);
+
 export default function LoadingScreen() {
   const { progress, ready, revealChrome } = useTiles();
   const [gone, setGone] = useState(false);
