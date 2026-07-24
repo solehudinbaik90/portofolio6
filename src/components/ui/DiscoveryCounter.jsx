@@ -4,82 +4,78 @@ import { useDiscoveryProgress } from '../../contexts/DiscoveryContext';
 import { usePopup } from '../../contexts/PopupContext';
 import { useFocus } from '../../contexts/FocusContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
+import { track } from '@vercel/analytics';
+import { pickDiscoveryHint } from '../../utils/strings';
 
-const RADIUS = 9;
-const STROKE = 6;
-const SIZE = 24;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const GREEN = '#44AA44';
-const HINT_DURATION = 2;
-const COUNTER_WIDTH = 160;
-const CLOSE_WIDTH = 64;
-
-const HINTS = [
-  (n) => `Only ${n} to go.`,
-  (n) => `${n} more to find.`,
-  (n) => `Just ${n} left.`,
-  () => 'Try going East.',
-  () => 'Have you looked left?',
-  () => 'Could go righter.',
-  () => 'Try changing categories.',
-  () => 'Up is down, down is up.',
-  () => 'So much to see.',
-  () => 'Plenty more to uncover.',
-];
-
-function pickHint(remaining) {
-  const fn = HINTS[Math.floor(Math.random() * HINTS.length)];
-  return fn(remaining);
-}
+const RADIUS      = 9;
+const STROKE      = 6;
+const SIZE        = 24;
+const CIRC        = 2 * Math.PI * RADIUS;
+const GREEN       = '#44AA44';
+const HINT_HOLD   = 2;
+const WIDTH_COUNT = 160;
+const WIDTH_CLOSE = 64;
 
 export default function DiscoveryCounter() {
-  const isHover = useHoverDevice();
+  const isHover   = useHoverDevice();
   const { count, total, progress } = useDiscoveryProgress();
-  const { popup, setPopup } = usePopup();
-  const { focusedId, isClosing } = useFocus();
+  const { popup, setPopup }        = usePopup();
+  const { focusedId, isClosing }   = useFocus();
 
-  const isComplete = popup === 'complete';
-  const focusActive = focusedId !== null && !isClosing;
-  const infoOrContact = popup === 'info' || popup === 'contact';
-  const visible = !focusActive && !infoOrContact;
+  const isComplete   = popup === 'complete';
+  const focusActive  = focusedId !== null && !isClosing;
+  const infoContact  = popup === 'info' || popup === 'contact';
+  const visible      = !focusActive && !infoContact;
 
-  const wrapRef = useRef(null);
+  // ── Refs ──────────────────────────────────────────────────────────────────
+  const wrapRef    = useRef(null);
   const counterRef = useRef(null);
-  const closeRef = useRef(null);
-  const hintRef = useRef(null);
-  const hintTlRef = useRef(null);
+  const closeRef   = useRef(null);
+  const hintRef    = useRef(null);
+  const hintTlRef  = useRef(null);
   const widthTlRef = useRef(null);
-  const visibilityInit = useRef(false);
-  const completeInit = useRef(false);
+  const visInit    = useRef(false);
+  const complInit  = useRef(false);
+  const autoComplete = useRef(false);
 
   const [hint, setHint] = useState('');
 
+  // ── Visibility ────────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    if (!visibilityInit.current) {
-      visibilityInit.current = true;
+    if (!visInit.current) {
+      visInit.current = true;
       gsap.set(el, { scale: +!!visible, opacity: +!!visible });
       return;
     }
-    gsap.to(el, { scale: +!!visible, duration: visible ? 0.4 : 0.3, ease: visible ? 'power2.out' : 'power2.in' });
-    gsap.to(el, { opacity: +!!visible, duration: visible ? 0.3 : 0.2, ease: visible ? 'power2.out' : 'power2.in' });
+    gsap.to(el, {
+      scale:    +!!visible,
+      duration: visible ? 0.4 : 0.3,
+      ease:     visible ? 'power2.out' : 'power2.in',
+    });
+    gsap.to(el, {
+      opacity:  +!!visible,
+      duration: visible ? 0.3 : 0.2,
+      ease:     visible ? 'power2.out' : 'power2.in',
+    });
   }, [visible]);
 
+  // ── Toggle counter ↔ close icon ───────────────────────────────────────────
   useLayoutEffect(() => {
-    if (!isHover) return;
     const counter = counterRef.current;
-    const close = closeRef.current;
-    const wrap = wrapRef.current;
+    const close   = closeRef.current;
+    const wrap    = wrapRef.current;
     if (!counter || !close || !wrap) return;
-    if (!completeInit.current) {
-      completeInit.current = true;
+
+    if (!complInit.current) {
+      complInit.current = true;
       gsap.set(counter, { scale: +!isComplete, opacity: +!isComplete });
-      gsap.set(close, { scale: +!!isComplete, opacity: +!!isComplete });
-      gsap.set(wrap, { width: isComplete ? CLOSE_WIDTH : COUNTER_WIDTH });
+      gsap.set(close,   { scale: +!!isComplete, opacity: +!!isComplete });
+      gsap.set(wrap,    { width: isComplete ? WIDTH_CLOSE : WIDTH_COUNT });
       return;
     }
-    const show = isComplete ? close : counter;
+    const show = isComplete ? close   : counter;
     const hide = isComplete ? counter : close;
     gsap.to(hide, { scale: 0, duration: 0.3, ease: 'power2.in' });
     gsap.to(hide, { opacity: 0, duration: 0.2, ease: 'power2.in' });
@@ -87,11 +83,15 @@ export default function DiscoveryCounter() {
     gsap.to(show, { opacity: 1, duration: 0.3, ease: 'power2.out' });
     widthTlRef.current?.kill();
     widthTlRef.current = gsap.to(wrap, {
-      width: isComplete ? CLOSE_WIDTH : COUNTER_WIDTH,
-      duration: 0.4,
-      ease: 'power2.inOut',
+      width: isComplete ? WIDTH_CLOSE : WIDTH_COUNT,
+      duration: 0.4, ease: 'power2.inOut',
     });
-  }, [isComplete, isHover]);
+  }, [isComplete]);
+
+  // ── Hint tooltip ──────────────────────────────────────────────────────────
+  useLayoutEffect(() => {
+    if (hintRef.current) gsap.set(hintRef.current, { scale: 0, opacity: 0 });
+  }, []);
 
   const showHint = useCallback((text) => {
     setHint(text);
@@ -102,10 +102,14 @@ export default function DiscoveryCounter() {
       .timeline()
       .set(el, { scale: 0, opacity: 0 })
       .to(el, { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' })
-      .to(el, { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' }, `+=${HINT_DURATION}`);
+      .to(el, { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' },
+        `+=${HINT_HOLD}`
+      );
   }, []);
 
+  // ── Click handler ─────────────────────────────────────────────────────────
   const handleClick = useCallback(() => {
+    track('progress_clicked', { count, total });
     if (isComplete) {
       setPopup(null);
       return;
@@ -114,12 +118,19 @@ export default function DiscoveryCounter() {
       setPopup('complete');
       return;
     }
-    showHint(pickHint(total - count));
+    showHint(pickDiscoveryHint(total - count));
   }, [isComplete, progress, count, total, setPopup, showHint]);
 
-  const offset = CIRCUMFERENCE * (1 - progress);
+  const offset = CIRC * (1 - progress);
 
-  if (!isHover) return null;
+  useEffect(() => {
+  if (!isHover) return;
+  if (progress >= 1 && !autoComplete.current) {
+    autoComplete.current = true;
+    setPopup('complete');
+  }
+}, [progress, isHover, setPopup]);
+
 
   return (
     <div className="pointer-events-none fixed bottom-8 right-8 z-20">
@@ -140,13 +151,17 @@ export default function DiscoveryCounter() {
           role={visible ? 'button' : 'img'}
           aria-label={isComplete ? 'Close' : `${count} of ${total} discovered`}
           onClick={visible ? handleClick : undefined}
-          style={{ width: COUNTER_WIDTH, pointerEvents: visible ? 'auto' : 'none', cursor: visible ? 'pointer' : 'default' }}
+          style={{
+            width:        WIDTH_COUNT,
+            pointerEvents: visible ? 'auto' : 'none',
+            cursor:        visible ? 'pointer' : 'default',
+          }}
           className="btn-interactive relative h-16 overflow-hidden rounded-full bg-white"
         >
 
           <span
             ref={counterRef}
-            style={{ transformOrigin: '50% 50%', width: COUNTER_WIDTH }}
+            style={{ transformOrigin: '50% 50%', width: WIDTH_COUNT }}
             className="absolute inset-y-0 right-0 flex items-center pl-5 pr-4"
           >
             <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-[20px] leading-[120%] text-black tabular-nums">
@@ -154,7 +169,7 @@ export default function DiscoveryCounter() {
             </span>
             <span className="flex shrink-0 items-center gap-[2px]">
 
-              <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} xmlns="http://www.w3.org/2000/svg" className="shrink-0" aria-hidden>
+              <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="shrink-0" aria-hidden>
                 <rect width={SIZE} height={SIZE} rx="12" fill="#000000" fillOpacity={0.1} />
                 <path d="M2.268 12.713C2.13 12.498 2.061 12.39 2.022 12.223C1.993 12.098 1.993 11.902 2.022 11.777C2.061 11.61 2.13 11.502 2.268 11.287C3.411 9.505 6.814 5 12 5C17.186 5 20.589 9.505 21.732 11.287C21.87 11.502 21.939 11.61 21.978 11.777C22.007 11.902 22.007 12.098 21.978 12.223C21.939 12.39 21.87 12.498 21.732 12.713C20.589 14.495 17.186 19 12 19C6.814 19 3.411 14.495 2.268 12.713Z" fill="#FFFFFF" />
                 <path d="M12 15C13.683 15 15.047 13.657 15.047 12C15.047 10.343 13.683 9 12 9C10.317 9 8.953 10.343 8.953 12C8.953 13.657 10.317 15 12 15Z" fill="#FFFFFF" />
@@ -165,14 +180,10 @@ export default function DiscoveryCounter() {
               <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90 shrink-0" aria-hidden>
                 <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#000000" strokeOpacity={0.1} strokeWidth={STROKE} />
                 <circle
-                  cx={SIZE / 2}
-                  cy={SIZE / 2}
-                  r={RADIUS}
-                  fill="none"
-                  stroke={GREEN}
-                  strokeWidth={STROKE}
+                  cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
+                  fill="none" stroke={GREEN} strokeWidth={STROKE}
                   strokeLinecap="round"
-                  strokeDasharray={CIRCUMFERENCE}
+                  strokeDasharray={CIRC}
                   strokeDashoffset={offset}
                   style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
                 />
