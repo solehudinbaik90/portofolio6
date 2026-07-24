@@ -1,54 +1,169 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useTiles } from '../../contexts/TileContext';
+
+const SHOW_DUR   = 1;
+const SHOW_EASE  = 'expo.out';
+const SHOW_OPACITY_DUR  = 1;
+const SHOW_OPACITY_EASE = 'power2.out';
+
+const HIDE_SCALE_DUR  = 0.55;
+const HIDE_SCALE_EASE = 'expo.in';
+const HIDE_OPACITY_DUR  = 0.55;
+const HIDE_OPACITY_EASE = 'power2.out';
+
+const OVERLAY_DUR  = 0.35;
+const OVERLAY_EASE = 'power2.in';
+const OVERLAY_REVEAL_OFFSET = '>-0.1';
+
+const MIN_DISPLAY_MS = 800;
+
+const NAME_ROWS = [
+  ['Hamza', 'Tariq'],
+  ['Design', 'etc.'],
+];
+
 export default function LoadingScreen() {
   const { progress, ready, revealChrome } = useTiles();
   const [gone, setGone] = useState(false);
+
   const overlayRef = useRef(null);
   const counterRef = useRef(null);
-  const logoRef = useRef(null);
-  const bootTime = useRef(performance.now());
+  const nameRef    = useRef(null);
+  const logoRef    = useRef(null);
+  const bootTime   = useRef(performance.now());
 
-  useEffect(() => {
-  console.log('ready:', ready, 'progress:', progress);
-}, [ready, progress]);
-  
+  // ── Init animasi masuk ───────────────────────────────────────────────────
   useLayoutEffect(() => {
     gsap.set([counterRef.current, logoRef.current], { scale: 0, opacity: 0 });
+    gsap.set(logoRef.current, { xPercent: -50 });
+
     const tl = gsap.timeline();
-    tl.to([counterRef.current, logoRef.current], { scale: 1, opacity: 1, duration: 0.6, ease: 'expo.out' });
+    tl.to([counterRef.current, logoRef.current], {
+      scale:    1,
+      duration: SHOW_DUR,
+      ease:     SHOW_EASE,
+    }, 0);
+    tl.to([counterRef.current, logoRef.current], {
+      opacity:  1,
+      duration: SHOW_OPACITY_DUR,
+      ease:     SHOW_OPACITY_EASE,
+    }, 0);
+    tl.to(nameRef.current, {
+      scale:    1,
+      duration: 0.4,
+      ease:     'power2.out',
+    }, 0);
+    tl.to(nameRef.current, {
+      opacity:  1,
+      duration: 0.3,
+      ease:     'power2.out',
+    }, 0);
+
+    return () => tl.kill();
   }, []);
 
   useEffect(() => {
-    if (counterRef.current) counterRef.current.textContent = `${Math.round(progress * 100)}%`;
+    if (counterRef.current) {
+      counterRef.current.textContent = `${Math.round(progress * 100)}%`;
+    }
   }, [progress]);
+
 
   useEffect(() => {
     if (!ready) return;
+
     const elapsed = performance.now() - bootTime.current;
-    const delay = Math.max(0, 800 - elapsed);
+    const delay   = Math.max(0, MIN_DISPLAY_MS - elapsed);
     let tl = null;
-    const id = setTimeout(() => {
+
+    const timerId = window.setTimeout(() => {
       tl = gsap.timeline({ onComplete: () => setGone(true) });
-      tl.to(counterRef.current, { scale: 0, opacity: 0, duration: 0.55, ease: 'expo.in' }, 0);
-      tl.to(overlayRef.current, { autoAlpha: 0, duration: 0.35, ease: 'power2.in' }, '>-0.1');
-      tl.call(revealChrome, [], '>-0.1');
+
+      tl.to(nameRef.current, {
+        scale:    0,
+        duration: 0.3,
+        ease:     'power2.in',
+      }, 0);
+      tl.to(nameRef.current, {
+        opacity:  0,
+        duration: 0.2,
+        ease:     'power2.in',
+      }, 0);
+
+      tl.to(counterRef.current, {
+        scale:    0,
+        duration: HIDE_SCALE_DUR,
+        ease:     HIDE_SCALE_EASE,
+      }, 0);
+      tl.to(counterRef.current, {
+        opacity:  0,
+        duration: HIDE_OPACITY_DUR,
+        ease:     HIDE_OPACITY_EASE,
+      }, 0);
+
+      tl.to(overlayRef.current, {
+        autoAlpha: 0,
+        duration:  OVERLAY_DUR,
+        ease:      OVERLAY_EASE,
+      }, OVERLAY_REVEAL_OFFSET);
+
+      tl.call(revealChrome, [], OVERLAY_REVEAL_OFFSET);
     }, delay);
-    return () => { clearTimeout(id); tl?.kill(); };
+
+    return () => {
+      window.clearTimeout(timerId);
+      tl?.kill();
+    };
   }, [ready, revealChrome]);
 
   if (gone) return null;
 
   return (
     <>
-      <div ref={overlayRef} className="fixed inset-0 z-50 bg-[#DDDDDD]" aria-hidden={ready}>
+
+      <div
+        ref={overlayRef}
+        className="fixed inset-0 z-50 bg-[#DDDDDD]"
+        aria-hidden={ready}
+      >
+
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div ref={counterRef} className="text-center text-[96px] leading-none tracking-[-0.02em] text-black" style={{ willChange: 'transform, opacity' }}>
+          <div
+            ref={counterRef}
+            className="text-center text-[96px] leading-none tracking-[-0.02em] text-black"
+            style={{ willChange: 'transform, opacity' }}
+          >
             0%
           </div>
         </div>
+
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <div
+            ref={nameRef}
+            className="text-center text-[20px] leading-none text-black"
+            style={{ willChange: 'transform, opacity' }}
+          >
+            {NAME_ROWS.map((row, ri) => (
+              <div key={ri} className="flex justify-center gap-[0.25em]">
+                {row.map((word, wi) => (
+                  <span key={wi} className="inline-block">
+                    {word}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <img ref={logoRef} src="/media/icons/logo.svg" alt="" className="fixed left-1/2 top-[52px] z-50 -translate-x-1/2" style={{ willChange: 'transform, opacity' }} />
+
+      <img
+        ref={logoRef}
+        src="/media/icons/logo.svg"
+        alt=""
+        className="fixed left-1/2 top-[52px] z-50"
+        style={{ willChange: 'transform, opacity' }}
+      />
     </>
   );
 }
