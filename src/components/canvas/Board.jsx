@@ -7,7 +7,6 @@ import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { tileColumnHeight, TILE_ASPECT_CLASSES } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
-// ── Konstanta ───────────────────────────────────────────
 const GAP              = 16;
 const DRAG_THRESHOLD   = 5;
 const VELOCITY_WINDOW  = 100;
@@ -20,14 +19,23 @@ const DRAG_TILE_SCALE  = 0.9;
 const BLUR_ON          = 'blur(56px)';
 const BLUR_OFF         = 'blur(0px)';
 
+// ── CSS classes ──────────────────────────────────────────────────────────────
+
+const MEDIA_HOVER_CLASS =
+  'pointer-events-none size-full rounded-[inherit] object-cover ' +
+  'blur-[32px] scale-125 ' +
+  'group-hover:blur-[0px] group-hover:scale-100 ' +
+  'group-[.discovered]:blur-[0px] group-[.discovered]:scale-100';
+
+const MEDIA_TOUCH_CLASS =
+  'pointer-events-none size-full rounded-[inherit] object-cover';
 
 function getColWidth() {
   if (typeof window === 'undefined') return 216;
   if (window.innerWidth >= 1920) return 480;
-  if (window.innerWidth >= 768)  return 360;
+  if (window.innerWidth >= 768) return 360;
   return 216;
 }
-
 
 function calcRepeatX(viewW, totalW) {
   return Math.max(2, Math.ceil(viewW / totalW) + 1);
@@ -36,39 +44,12 @@ function calcRepeatY(viewH, colH) {
   return Math.max(2, Math.ceil(viewH / colH) + 1);
 }
 
-
-function wrapDelta(value, range) {
-  if (range <= 0) return 0;
-  const mod = ((value % range) + range) % range;
-  return mod > range / 2 ? mod - range : mod;
-}
-
-
-function VideoBadge() {
-  return (
-    <div
-      aria-hidden
-      className="video-badge pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-[1px] rounded-[4px] bg-white px-[4px] border [border-color:rgba(0,0,0,0.1)] py-[2px] group-hover:opacity-0"
-      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
-    >
-      <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-        <path d="M2.5 2.495C2.5 2.009 2.5 1.766 2.601 1.633C2.689 1.516 2.824 1.444 2.97 1.435C3.138 1.425 3.34 1.56 3.744 1.829L9.002 5.334C9.335 5.557 9.502 5.668 9.56 5.808C9.611 5.931 9.611 6.069 9.56 6.191C9.502 6.332 9.335 6.443 9.002 6.666L3.744 10.171C3.34 10.44 3.138 10.575 2.97 10.565C2.824 10.556 2.689 10.484 2.601 10.367C2.5 10.233 2.5 9.991 2.5 9.505V2.495Z" fill="#00000054" />
-        <path d="M2.955 1.186C3.111 1.176 3.256 1.236 3.388 1.308C3.522 1.38 3.685 1.489 3.883 1.621L9.141 5.126C9.303 5.234 9.439 5.325 9.541 5.407C9.643 5.49 9.738 5.585 9.791 5.713C9.867 5.897 9.867 6.103 9.791 6.287C9.738 6.415 9.643 6.509 9.541 6.592C9.439 6.674 9.304 6.765 9.141 6.874L3.883 10.379C3.685 10.511 3.522 10.62 3.388 10.692C3.256 10.764 3.111 10.824 2.955 10.815C2.736 10.801 2.535 10.693 2.402 10.519C2.308 10.394 2.277 10.241 2.264 10.091C2.25 9.939 2.25 9.743 2.25 9.505V2.495C2.25 2.257 2.25 2.061 2.264 1.909C2.277 1.759 2.308 1.606 2.402 1.481C2.535 1.307 2.736 1.199 2.955 1.186Z" fill="none" stroke="#00000054" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>
-        video
-      </span>
-    </div>
-  );
-}
-
 export default function Board() {
   const { columns, nonce, transitioning, chromeRevealed } = useTiles();
   const { focusedId, source, isClosing, openFocus } = useFocus();
   const { markDiscovered, isDiscovered } = useDiscoveryActions();
   const isHover = useHoverDevice();
 
-  // ── Refs ──────────────────────────────────────────────────────────────────
   const wrapRef     = useRef(null);
   const innerRef    = useRef(null);
   const colRefs     = useRef([]);
@@ -88,11 +69,9 @@ export default function Board() {
   const revealed    = useRef(false);
   const willChange  = useRef(false);
 
-  // ── State untuk jumlah repeat ─────────────────────────────────────────────
   const [repeatX, setRepeatX] = useState(2);
   const [repeatY, setRepeatY] = useState(2);
 
-  // ── willChange helper ─────────────────────────────────────────────────────
   const setWillChange = useCallback((active) => {
     if (willChange.current === active) return;
     willChange.current = active;
@@ -102,7 +81,7 @@ export default function Board() {
       if (el) el.style.willChange = val;
     }
   }, []);
- 
+
   const applyPositions = useCallback(() => {
     const cw   = colWidthRef.current;
     const cols = colsRef.current;
@@ -111,42 +90,37 @@ export default function Board() {
     const numCols = cols.length;
     const stride  = cw + GAP;
     const totalW  = numCols * stride;
-    
-    const rawX       = posRef.current.x;
-  const wrappedX   = ((rawX % totalW) + totalW) % totalW;
+    const rawX    = posRef.current.x;
+    const wrappedX = ((rawX % totalW) + totalW) % totalW;
 
     const totalRepCols = (repeatX ?? 2) * numCols;
-  const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
-
+    const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
 
     if (innerRef.current) {
-    innerRef.current.style.transform =
-      `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
-  }
+      innerRef.current.style.transform =
+        `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
+    }
 
     const totalCols = colRefs.current.length;
-  for (let ci = 0; ci < totalCols; ci++) {
-    const el = colRefs.current[ci];
-    if (!el) continue;
-    const col   = cols[ci % numCols];
-    const colH  = tileColumnHeight(col, cw);
-    if (colH <= 0) continue;
-    const offset   = colOffsets.current[ci % numCols] ?? 0;
+    for (let ci = 0; ci < totalCols; ci++) {
+      const el = colRefs.current[ci];
+      if (!el) continue;
+      const col  = cols[ci % numCols];
+      const colH = tileColumnHeight(col, cw);
+      if (colH <= 0) continue;
+      const offset   = colOffsets.current[ci % numCols] ?? 0;
+      const raw      = posRef.current.y + offset * colH;
+      const mod      = ((raw % colH) + colH) % colH;
+      const wrappedY = mod > colH / 2 ? mod - colH : mod;
+      el.style.transform = `translate3d(0, ${wrappedY}px, 0)`;
+    }
+  }, [repeatX]);
 
-    const raw      = posRef.current.y + offset * colH;
-    const mod      = ((raw % colH) + colH) % colH;
-    const wrappedY = mod > colH / 2 ? mod - colH : mod;
-    el.style.transform = `translate3d(0, ${wrappedY}px, 0)`;
-  }
-}, [repeatX]);
-
-  // ── Lerp loop ─────────────────────────────────────────────────────────────
   const stopLerp = useCallback(() => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
     }
-
     targetRef.current.x = posRef.current.x;
     targetRef.current.y = posRef.current.y;
   }, []);
@@ -173,7 +147,6 @@ export default function Board() {
     rafRef.current = requestAnimationFrame(loop);
   }, [applyPositions, setWillChange]);
 
-  // ── Hitung jumlah repeat berdasarkan ukuran layar & kolom ─────────────────
   const recomputeRepeat = useCallback(() => {
     const cols = colsRef.current;
     const cw   = colWidthRef.current;
@@ -194,7 +167,6 @@ export default function Board() {
     setRepeatY(ry);
   }, []);
 
-  // ── Sync colOffsets ketika kolom berubah ──────────────────────────────────
   useEffect(() => {
     if (colOffsets.current.length !== columns.length) {
       colOffsets.current = columns.map(() => Math.random());
@@ -202,13 +174,8 @@ export default function Board() {
     applyPositions();
   }, [columns, applyPositions]);
 
-  useEffect(() => {
-    recomputeRepeat();
-  }, [columns, recomputeRepeat]);
-
-  useEffect(() => {
-    applyPositions();
-  }, [repeatX, repeatY, applyPositions]);
+  useEffect(() => { recomputeRepeat(); }, [columns, recomputeRepeat]);
+  useEffect(() => { applyPositions(); }, [repeatX, repeatY, applyPositions]);
 
   useEffect(() => {
     const handler = () => {
@@ -220,25 +187,24 @@ export default function Board() {
     return () => window.removeEventListener('resize', handler);
   }, [recomputeRepeat, applyPositions]);
 
-  // ── Initial set transform ─────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (innerRef.current) {
       gsap.set(innerRef.current, { xPercent: -50, yPercent: -50 });
     }
   }, []);
 
-  // ── Tile reveal/hide animasi ──────────────────────────────────────────────
+  // ── Tile reveal/hide ────────────────
 
   const initHidden = useRef(false);
   useLayoutEffect(() => {
+    if (!isHover) return;
     if (initHidden.current) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (tiles?.length) {
       gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
       initHidden.current = true;
     }
-  }, [columns]);
-
+  }, [columns, isHover]);
 
   useEffect(() => {
     if (!chromeRevealed || revealed.current) return;
@@ -247,19 +213,27 @@ export default function Board() {
     if (!tiles?.length) return;
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
-    scaleAnim.current = gsap.to(tiles, {
-      scale: 1, opacity: 1,
-      duration: 0.7, ease: 'power2.out',
-      delay: 0.3, overwrite: true,
-    });
-    filterAnim.current = gsap.to(tiles, {
-      filter: BLUR_OFF,
-      duration: 0.7, ease: 'expo.out',
-      delay: 0.3, overwrite: true,
-      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-    });
-  }, [chromeRevealed]);
 
+    if (isHover) {
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 0.7, ease: 'power2.out',
+        delay: 0.3, overwrite: true,
+      });
+      filterAnim.current = gsap.to(tiles, {
+        filter: BLUR_OFF,
+        duration: 0.7, ease: 'expo.out',
+        delay: 0.3, overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
+      });
+    } else {
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 0.7, ease: 'power2.out',
+        delay: 0.3, overwrite: true,
+      });
+    }
+  }, [chromeRevealed, isHover]);
 
   useEffect(() => {
     if (!transitioning) return;
@@ -271,12 +245,13 @@ export default function Board() {
       scale: 0, opacity: 0,
       duration: 0.6, ease: 'power3.inOut', overwrite: true,
     });
-    filterAnim.current = gsap.to(tiles, {
-      filter: BLUR_ON,
-      duration: 0.6, ease: 'power3.inOut', overwrite: true,
-    });
-  }, [transitioning]);
-
+    if (isHover) {
+      filterAnim.current = gsap.to(tiles, {
+        filter: BLUR_ON,
+        duration: 0.6, ease: 'power3.inOut', overwrite: true,
+      });
+    }
+  }, [transitioning, isHover]);
 
   useLayoutEffect(() => {
     if (nonce === 0) return;
@@ -284,18 +259,26 @@ export default function Board() {
     if (!tiles?.length) return;
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
-    gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
-    scaleAnim.current = gsap.to(tiles, {
-      scale: 1, opacity: 1,
-      duration: 1, ease: 'power3.out', overwrite: true,
-    });
-    filterAnim.current = gsap.to(tiles, {
-      filter: BLUR_OFF,
-      duration: 1, ease: 'expo.out', overwrite: true,
-      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-    });
-  }, [nonce]);
 
+    if (isHover) {
+      gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 1, ease: 'power3.out', overwrite: true,
+      });
+      filterAnim.current = gsap.to(tiles, {
+        filter: BLUR_OFF,
+        duration: 1, ease: 'expo.out', overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
+      });
+    } else {
+      gsap.set(tiles, { scale: 0, opacity: 0 });
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 1, ease: 'power3.out', overwrite: true,
+      });
+    }
+  }, [nonce, isHover]);
 
   useEffect(() => {
     const inner = innerRef.current;
@@ -310,11 +293,13 @@ export default function Board() {
         scale: 0, opacity: 0,
         duration: 0.7, ease: 'power2.inOut', overwrite: true,
       });
-      filterAnim.current?.kill();
-      filterAnim.current = gsap.to(others, {
-        filter: BLUR_ON,
-        duration: 0.7, ease: 'power3.inOut', overwrite: true,
-      });
+      if (isHover) {
+        filterAnim.current?.kill();
+        filterAnim.current = gsap.to(others, {
+          filter: BLUR_ON,
+          duration: 0.7, ease: 'power3.inOut', overwrite: true,
+        });
+      }
     } else if (focusedId && isClosing) {
       const others = source
         ? allTiles.filter((el) => el !== source)
@@ -323,16 +308,18 @@ export default function Board() {
         scale: 1, opacity: 1,
         duration: 0.7, ease: 'power2.out', overwrite: true,
       });
-      filterAnim.current?.kill();
-      filterAnim.current = gsap.to(others, {
-        filter: BLUR_OFF,
-        duration: 0.7, ease: 'expo.out', overwrite: true,
-        onComplete: () => gsap.set(others, { clearProps: 'filter' }),
-      });
+      if (isHover) {
+        filterAnim.current?.kill();
+        filterAnim.current = gsap.to(others, {
+          filter: BLUR_OFF,
+          duration: 0.7, ease: 'expo.out', overwrite: true,
+          onComplete: () => gsap.set(others, { clearProps: 'filter' }),
+        });
+      }
     }
-  }, [focusedId, isClosing, source]);
+  }, [focusedId, isClosing, source, isHover]);
 
-  // ── Video: IntersectionObserver ───────────────────────────────────────────
+  // ── Video IntersectionObserver ────────────────────────────────────────────
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
@@ -377,8 +364,8 @@ export default function Board() {
     let originX = 0, originY = 0;
     let vx = 0, vy = 0;
     let lastT = 0, lastX = 0, lastY = 0;
-    let startEl    = null;
-    let captureId  = null;
+    let startEl   = null;
+    let captureId = null;
 
     const squashTiles = () => {
       isDragging.current = true;
@@ -390,12 +377,11 @@ export default function Board() {
       });
     };
 
-
     const restoreTiles = (duration = 0.9) => {
       isDragging.current = false;
-      const tiles    = Array.from(inner.querySelectorAll('[data-tile-id]'));
-      const hovered  = hoveredEl.current;
-      const others   = hovered ? tiles.filter((el) => el !== hovered) : tiles;
+      const tiles   = Array.from(inner.querySelectorAll('[data-tile-id]'));
+      const hovered = hoveredEl.current;
+      const others  = hovered ? tiles.filter((el) => el !== hovered) : tiles;
       scaleAnim.current?.kill();
       scaleAnim.current = gsap.to(others, {
         scale: 1, duration, ease: 'expo.out', overwrite: 'auto',
@@ -461,7 +447,7 @@ export default function Board() {
         const el = document.elementFromPoint(e.clientX, e.clientY)
           ?.closest('[data-tile-id]') ?? null;
         hoveredEl.current = el;
-        if (el) el.querySelector('video')?.play().catch(() => {});
+        if (el && isHover) el.querySelector('video')?.play().catch(() => {});
       }
       restoreTiles(0.9);
 
@@ -471,7 +457,6 @@ export default function Board() {
           openFocus(tileEl.dataset.tileId, tileEl);
         }
       }
-
 
       const cw     = colWidthRef.current;
       const stride = cw + GAP;
@@ -550,22 +535,22 @@ export default function Board() {
       if (e.cancelable) e.preventDefault();
     };
 
-    wrap.addEventListener('pointerdown',  onDown);
-    wrap.addEventListener('pointermove',  onMove);
-    wrap.addEventListener('pointerup',    onUp);
-    wrap.addEventListener('pointercancel',onUp);
-    wrap.addEventListener('pointerover',  onPointerOver);
-    wrap.addEventListener('pointerout',   onPointerOut);
-    wrap.addEventListener('wheel',        onWheel, { passive: false });
+    wrap.addEventListener('pointerdown',   onDown);
+    wrap.addEventListener('pointermove',   onMove);
+    wrap.addEventListener('pointerup',     onUp);
+    wrap.addEventListener('pointercancel', onUp);
+    wrap.addEventListener('pointerover',   onPointerOver);
+    wrap.addEventListener('pointerout',    onPointerOut);
+    wrap.addEventListener('wheel',         onWheel, { passive: false });
 
     return () => {
-      wrap.removeEventListener('pointerdown',  onDown);
-      wrap.removeEventListener('pointermove',  onMove);
-      wrap.removeEventListener('pointerup',    onUp);
-      wrap.removeEventListener('pointercancel',onUp);
-      wrap.removeEventListener('pointerover',  onPointerOver);
-      wrap.removeEventListener('pointerout',   onPointerOut);
-      wrap.removeEventListener('wheel',        onWheel);
+      wrap.removeEventListener('pointerdown',   onDown);
+      wrap.removeEventListener('pointermove',   onMove);
+      wrap.removeEventListener('pointerup',     onUp);
+      wrap.removeEventListener('pointercancel', onUp);
+      wrap.removeEventListener('pointerover',   onPointerOver);
+      wrap.removeEventListener('pointerout',    onPointerOut);
+      wrap.removeEventListener('wheel',         onWheel);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       inertiaRef.current?.kill();
       scaleAnim.current?.kill();
@@ -578,8 +563,10 @@ export default function Board() {
   ]);
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const numCols    = columns.length;
-  const totalCols  = repeatX * numCols;
+  const numCols   = columns.length;
+  const totalCols = repeatX * numCols;
+
+  const mediaClass = isHover ? MEDIA_HOVER_CLASS : MEDIA_TOUCH_CLASS;
 
   return (
     <div
@@ -609,7 +596,6 @@ export default function Board() {
                   const imgSrc      = tile.media.kind === 'video'
                     ? (tile.media.posterSrc ?? tile.media.src)
                     : tile.media.src;
-                  const blurClass   = 'pointer-events-none size-full rounded-[inherit] object-cover blur-[32px] scale-125 group-hover:blur-[0px] group-hover:scale-100 group-[.discovered]:blur-[0px] group-[.discovered]:scale-100';
 
                   return (
                     <div
@@ -634,13 +620,14 @@ export default function Board() {
                             <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>video</span>
                           </div>
                         )}
+
                         {useVideo ? (
                           <video
                             src={tile.media.src}
                             poster={tile.media.posterSrc}
                             loop muted playsInline
                             preload="none"
-                            className={blurClass}
+                            className={mediaClass}
                           />
                         ) : (
                           <img
@@ -648,7 +635,7 @@ export default function Board() {
                             alt=""
                             draggable={false}
                             decoding="async"
-                            className={blurClass}
+                            className={mediaClass}
                           />
                         )}
                       </div>
