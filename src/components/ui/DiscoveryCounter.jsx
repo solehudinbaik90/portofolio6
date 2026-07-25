@@ -1,4 +1,4 @@
-import { useRef, useState, useLayoutEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useDiscoveryProgress } from '../../contexts/DiscoveryContext';
 import { usePopup } from '../../contexts/PopupContext';
