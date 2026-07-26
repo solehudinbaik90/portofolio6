@@ -1,18 +1,16 @@
-@import "tailwindcss";
-
-/ ── Custom Font ─────────────────────────────────────────── /
+/* ── Custom Font ─────────────────────────────────────────── */
 @font-face {
   font-family: 'TausendSoft';
-  src: url('/TausendSoft-Regular.woff2') format('woff2');
+  src: url('@/assets/TausendSoft-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
-/ ── Reset & Base ────────────────────────────────────────── /
-,
-::before,
-::after {
+/* ── Reset & Base ────────────────────────────────────────── */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -34,9 +32,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #000;
+  font-feature-settings: "ss02";
 }
 
-/ ── CSS Variables ───────────────────────────────────────── /
+/* ── CSS Variables ───────────────────────────────────────── */
 :root {
   --tile-focus-w: 320px;
   --tile-focus-w-landscape: 480px;
@@ -53,6 +52,14 @@ body {
   --color-yellow: #BFFF00;
   --color-pink: #E1306C;
   --color-amber: #FFBF00;
+  --btn-hover-scale: 1.025;
+  --btn-press-scale: 0.9;
+  --btn-hover-brightness: 0.92;
+  --btn-transition-duration: 0.2s;
+  --btn-transition-ease: cubic-bezier(0.2, 0, 0, 1);
+  --menu-row-rest-opacity: 0.33;
+  --menu-row-hover-opacity: 1;
+  --ui-border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 @media (min-width: 768px) {
@@ -77,16 +84,16 @@ body {
   }
 }
 
-/ ── Focus Ring (Accessibility) ──────────────────────────── /
+/* ── Focus Ring (Accessibility) ──────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--color-blue);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    BOARD — Infinite Scrollable Canvas
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .board {
   position: fixed;
@@ -102,8 +109,7 @@ body {
   cursor: grabbing;
 }
 
-/ Centering wrapper yang bergerak saat drag /
-.board_inner {
+.board__inner {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -113,8 +119,8 @@ body {
   will-change: transform;
 }
 
-/ ── Column ──────────────────────────────────────────────── /
-.boardcol {
+/* ── Column ──────────────────────────────────────────────── */
+.board__col {
   display: flex;
   width: var(--col-width-base);
   flex-shrink: 0;
@@ -124,18 +130,18 @@ body {
 }
 
 @media (min-width: 768px) {
-  .boardcol {
+  .board__col {
     width: var(--col-width-md);
   }
 }
 
 @media (min-width: 1920px) {
-  .boardcol {
+  .board__col {
     width: var(--col-width-xl);
   }
 }
 
-/ ── Tile Wrapper (aspect-ratio container) ───────────────── /
+/* ── Tile Wrapper (aspect-ratio container) ───────────────── */
 .tile-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -148,9 +154,9 @@ body {
 .tile-wrapper--1-1   { aspect-ratio: 1 / 1; }
 .tile-wrapper--square { aspect-ratio: 1 / 1; }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    TILE — Individual Media Card
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .tile {
   position: absolute;
@@ -159,18 +165,15 @@ body {
   border-radius: 8px;
   background-color: var(--color-bg);
   cursor: pointer;
-  / GSAP mengontrol transform/opacity — tidak pakai CSS transition di sini /
 }
 
-/ Gambar & video di dalam tile /
-.tilemedia {
+.tile__media {
   pointer-events: none;
   width: 100%;
   height: 100%;
   border-radius: inherit;
   object-fit: cover;
 
-  / State default: blur + scale up /
   filter: blur(32px);
   transform: scale(1.25);
   transition:
@@ -178,19 +181,17 @@ body {
     transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/ Hover: hapus blur, kembalikan scale /
-.tile:hover .tilemedia {
+.tile:hover .tile__media {
   filter: blur(0px);
   transform: scale(1);
 }
 
-/ Discovered state: sama seperti hover tapi persisten /
-.tile.discovered .tilemedia {
+.tile.discovered .tile__media {
   filter: blur(0px);
   transform: scale(1);
 }
 
-/ ── Video Badge ─────────────────────────────────────────── /
+/* ── Video Badge ─────────────────────────────────────────── */
 .video-badge {
   pointer-events: none;
   position: absolute;
@@ -208,13 +209,13 @@ body {
   transition: opacity 0.2s ease;
 }
 
-.video-badgeicon {
+.video-badge__icon {
   flex-shrink: 0;
   width: 12px;
   height: 12px;
 }
 
-.video-badgelabel {
+.video-badge__label {
   color: rgba(0, 0, 0, 0.66);
   font-size: 12px;
   letter-spacing: -0.02em;
@@ -222,49 +223,89 @@ body {
   font-family: inherit;
 }
 
-/ Badge disembunyikan saat hover / discovered /
 .tile:hover .video-badge,
 .tile.discovered .video-badge {
   opacity: 0;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    UI SHADOW — Shared elevation style
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .ui-shadow {
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.12),
     0 2px 4px rgba(0, 0, 0, 0.06),
     0 8px 24px rgba(0, 0, 0, 0.08);
+    border: var(--ui-border);
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    BTN INTERACTIVE — Base interactive element
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .btn-interactive {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   outline: none;
-  border: none;
+  border: var(--ui-border);
   cursor: pointer;
   touch-action: manipulation;
-  transition: opacity 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform var(--btn-transition-duration) var(--btn-transition-ease),
+    filter var(--btn-transition-duration) var(--btn-transition-ease);
   background: none;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transform-origin: 50%;
 }
+
+@media (hover: hover) {
+  .btn-interactive:hover {
+    transform: scale(var(--btn-hover-scale));
+    filter: brightness(var(--btn-hover-brightness));
+  }
+}
+
 
 .btn-interactive:active {
   opacity: 0.85;
+  transform: scale(var(--btn-press-scale));
+  filter: brightness(var(--btn-hover-brightness));
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
+   MENU ROW
+   ════════════════════════════════════════════════════════════ */
+
+.menu-row .menu-row-label {
+  opacity: var(--menu-row-rest-opacity);
+  transition: opacity var(--btn-transition-duration) var(--btn-transition-ease);
+}
+
+@media (hover: hover) {
+  .menu-row:hover .menu-row-label {
+    opacity: var(--menu-row-hover-opacity);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Cursor None (Pointer Device)
+   ════════════════════════════════════════════════════════════ */
+
+@media (hover: hover) and (pointer: fine) {
+  html,
+  html  {
+    cursor: none !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
    NAVIGATION — Top Bar
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .nav {
   position: fixed;
@@ -276,19 +317,19 @@ body {
   pointer-events: none;
 }
 
-.navlist {
+.nav__list {
   pointer-events: none;
   display: flex;
   gap: 8px;
   list-style: none;
 }
 
-.navitem {
+.nav__item {
   pointer-events: auto;
 }
 
-/ Tombol nav bulat /
-.navbtn {
+
+.nav__btn {
   pointer-events: auto;
   display: flex;
   width: 64px;
@@ -304,28 +345,26 @@ body {
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.navbtn:active {
+.nav__btn:active {
   opacity: 0.85;
   transform: scale(0.95);
 }
 
-.navbtn--info {
+.nav__btn--info {
   background-color: #ACD5FF;
   color: var(--color-black);
 }
 
-.navbtn--home {
+.nav__btn--home {
   background-color: var(--color-white);
 }
 
-.navbtn--contact {
+.nav__btn--contact {
   background-color: var(--color-yellow);
   color: var(--color-black);
 }
 
-
-/ Icon di nav /
-.navicon {
+.nav__icon {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
@@ -334,8 +373,8 @@ body {
   -webkit-user-drag: none;
 }
 
-/ ── Nav Tooltip ─────────────────────────────────────────── /
-.navtooltip-wrap {
+/* ── Nav Tooltip ─────────────────────────────────────────── */
+.nav__tooltip-wrap {
   pointer-events: none;
   position: absolute;
   left: 50%;
@@ -344,7 +383,7 @@ body {
   transform: translateX(-50%);
 }
 
-.navtooltip {
+.nav__tooltip {
   white-space: nowrap;
   border-radius: 9999px;
   background-color: var(--color-blue);
@@ -352,12 +391,11 @@ body {
   font-size: 16px;
   line-height: 20px;
   color: var(--color-white);
-  / transform & opacity dikendalikan GSAP /
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    BOTTOM BAR — Category Filter + Discovery Counter
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .bottom-bar {
   position: fixed;
@@ -369,7 +407,6 @@ body {
   pointer-events: none;
 }
 
-/ Category pill /
 .category-btn {
   pointer-events: auto;
   display: flex;
@@ -393,27 +430,27 @@ body {
   opacity: 0.85;
 }
 
-.category-btninner {
+.category-btn__inner {
   display: flex;
   width: 100%;
   align-items: center;
   justify-content: space-between;
 }
 
-.category-btnlabel {
+.category-btn__label {
   font-size: 20px;
   line-height: 120%;
   font-family: inherit;
 }
 
-.category-btnicons {
+.category-btn__icons {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
 }
 
-/ ── Discovery Counter (bottom-right) ────────────────────── /
+/* ── Discovery Counter (bottom-right) ────────────────────── */
 .discovery-counter-wrap {
   position: fixed;
   bottom: 32px;
@@ -432,10 +469,9 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  / width diatur via JS/GSAP /
 }
 
-.discovery-countermain {
+.discovery-counter__main {
   position: absolute;
   inset-block: 0;
   right: 0;
@@ -445,7 +481,7 @@ body {
   padding-right: 16px;
 }
 
-.discovery-countertext {
+.discovery-counter__text {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -456,55 +492,50 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.discovery-countericons {
+.discovery-counter__icons {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: 2px;
 }
 
-/ Eye icon /
-.discovery-countereye {
+.discovery-counter__eye {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
 }
 
-/ Progress ring /
-.discovery-counterring {
+.discovery-counter__ring {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
   transform: rotate(-90deg);
 }
 
-.discovery-counterring-track {
+.discovery-counter__ring-track {
   fill: none;
   stroke: rgba(0, 0, 0, 0.1);
   stroke-width: 6;
 }
 
-.discovery-counterring-fill {
+.discovery-counter__ring-fill {
   fill: none;
   stroke: var(--color-green);
   stroke-width: 6;
   stroke-linecap: round;
-  / stroke-dasharray & stroke-dashoffset diatur via JS /
   transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/ Close icon (muncul saat counter diklik) /
-.discovery-counterclose {
+.discovery-counter__close {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  / opacity & transform dikendalikan GSAP /
 }
 
-/ ── Discovery Counter Tooltip ───────────────────────────── /
-.discovery-countertooltip-wrap {
+/* ── Discovery Counter Tooltip ───────────────────────────── */
+.discovery-counter__tooltip-wrap {
   pointer-events: none;
   position: absolute;
   bottom: 100%;
@@ -512,7 +543,7 @@ body {
   margin-bottom: 16px;
 }
 
-.discovery-countertooltip {
+.discovery-counter__tooltip {
   white-space: nowrap;
   border-radius: 9999px;
   background-color: var(--color-blue);
@@ -520,12 +551,11 @@ body {
   font-size: 16px;
   line-height: 20px;
   color: var(--color-white);
-  / opacity & transform dikendalikan GSAP /
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    TILE DETAIL BAR — Bottom bar saat tile diklik
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .tile-detail-bar {
   position: fixed;
@@ -538,7 +568,7 @@ body {
   pointer-events: none;
 }
 
-.tile-detail-barinner {
+.tile-detail-bar__inner {
   display: flex;
   width: 100%;
   max-width: 400px;
@@ -546,15 +576,13 @@ body {
   gap: 8px;
 }
 
-/ Detail pill /
 .tile-detail-pill {
   flex: 1;
-  / opacity & transform dikendalikan GSAP /
   transform-origin: 50% 50%;
 }
 
-.tile-detail-pillbtn {
-  pointer-events: none; / aktif saat bukan default /
+.tile-detail-pill__btn {
+  pointer-events: none;
   display: flex;
   height: 64px;
   width: 100%;
@@ -575,12 +603,11 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.tile-detail-pillbtn:active {
+.tile-detail-pill__btn:active {
   opacity: 0.85;
 }
 
-/ Thumbnail di dalam detail pill /
-.tile-detail-pillthumb {
+.tile-detail-pill__thumb {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -590,15 +617,14 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.tile-detail-pillthumb img,
-.tile-detail-pillthumb video {
+.tile-detail-pill__thumb img,
+.tile-detail-pill__thumb video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/ Label di dalam detail pill /
-.tile-detail-pilllabel-wrap {
+.tile-detail-pill__label-wrap {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -606,7 +632,7 @@ body {
   align-items: flex-start;
 }
 
-.tile-detail-pilllabel {
+.tile-detail-pill__label {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -619,15 +645,13 @@ body {
   font-family: inherit;
 }
 
-/ Close button di sebelah pill /
 .tile-detail-close {
   flex-shrink: 0;
-  / opacity & transform dikendalikan GSAP /
   transform-origin: 50% 50%;
 }
 
-.tile-detail-closebtn {
-  pointer-events: none; / aktif saat bukan default /
+.tile-detail-close__btn {
+  pointer-events: none;
   display: flex;
   width: 64px;
   height: 64px;
@@ -644,13 +668,13 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.tile-detail-closebtn:active {
+.tile-detail-close__btn:active {
   opacity: 0.85;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    OVERLAY BACKDROP — Muncul saat panel atau tile aktif
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .overlay-backdrop {
   position: fixed;
@@ -660,14 +684,13 @@ body {
   background-color: rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  / opacity & pointer-events dikendalikan GSAP /
   opacity: 0;
   pointer-events: none;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    PANEL ABOUT — Info dialog
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .panel-about-wrap {
   pointer-events: none;
@@ -691,12 +714,10 @@ body {
   overflow: hidden;
   border-radius: 16px;
   background-color: var(--color-white);
-  / transform & opacity dikendalikan GSAP /
   transform-origin: 50% 0%;
 }
 
-/ Scrollable content area /
-.panel-aboutbody {
+.panel-about__body {
   display: flex;
   min-height: 0;
   flex: 1;
@@ -708,25 +729,24 @@ body {
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
-.panel-aboutbody::-webkit-scrollbar {
+.panel-about__body::-webkit-scrollbar {
   width: 4px;
 }
 
-.panel-aboutbody::-webkit-scrollbar-track {
+.panel-about__body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.panel-aboutbody::-webkit-scrollbar-thumb {
+.panel-about__body::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.15);
   border-radius: 9999px;
 }
 
-.panel-aboutbody::-webkit-scrollbar-thumb:hover {
+.panel-about__body::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.25);
 }
 
-/ Fade gradient di bagian bawah panel /
-.panel-aboutfade {
+.panel-about__fade {
   pointer-events: none;
   position: absolute;
   inset-inline: 0;
@@ -734,7 +754,7 @@ body {
   height: 64px;
 }
 
-.panel-aboutfade-blur {
+.panel-about__fade-blur {
   position: absolute;
   inset: 0;
   backdrop-filter: blur(16px);
@@ -743,20 +763,18 @@ body {
   -webkit-mask-image: linear-gradient(transparent 0%, black 100%);
 }
 
-.panel-aboutfade-gradient {
+.panel-about__fade-gradient {
   position: absolute;
   inset: 0;
-  / gradient bisa disesuaikan — default transparan /
 }
 
-/ Spacer di akhir scroll agar konten tidak tertutup fade /
-.panel-aboutscroll-spacer {
+.panel-about__scroll-spacer {
   height: 64px;
   flex-shrink: 0;
 }
 
-/ ── Panel About — Header ────────────────────────────────── /
-.panel-aboutheader {
+/* ── Panel About — Header ────────────────────────────────── */
+.panel-about__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -765,13 +783,13 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-aboutidentity {
+.panel-about__identity {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.panel-aboutavatar {
+.panel-about__avatar {
   width: 64px;
   height: 64px;
   flex-shrink: 0;
@@ -779,12 +797,12 @@ body {
   object-fit: cover;
 }
 
-.panel-aboutname-wrap {
+.panel-about__name-wrap {
   display: flex;
   flex-direction: column;
 }
 
-.panel-aboutname {
+.panel-about__name {
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -792,7 +810,7 @@ body {
   font-family: inherit;
 }
 
-.panel-abouttagline {
+.panel-about__tagline {
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -800,8 +818,8 @@ body {
   font-family: inherit;
 }
 
-/ ── Panel About — Bio ───────────────────────────────────── /
-.panel-aboutbio {
+/* ── Panel About — Bio ───────────────────────────────────── */
+.panel-about__bio {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
@@ -809,8 +827,8 @@ body {
   font-family: inherit;
 }
 
-/ ── Panel About — Disciplines Pills ────────────────────── /
-.panel-aboutdisciplines {
+/* ── Panel About — Disciplines Pills ────────────────────── */
+.panel-about__disciplines {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -833,15 +851,15 @@ body {
 .discipline-pill--web     { background-color: #2384E6; }
 .discipline-pill--brand   { background-color: #FC011C; }
 
-.discipline-pilllabel {
+.discipline-pill__label {
   font-size: 20px;
   line-height: 1;
   color: var(--color-white);
   font-family: inherit;
 }
 
-/ ── Panel About — AI Note ───────────────────────────────── /
-.panel-aboutai-note {
+/* ── Panel About — AI Note ───────────────────────────────── */
+.panel-about__ai-note {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -849,34 +867,34 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-aboutai-icons {
+.panel-about__ai-icons {
   display: flex;
   justify-content: flex-start;
   gap: 2px;
 }
 
-.panel-aboutai-text {
+.panel-about__ai-text {
   display: flex;
   flex-direction: column;
 }
 
-.panel-aboutai-text p {
+.panel-about__ai-text p {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
   font-family: inherit;
 }
 
-.panel-aboutai-text p:first-child {
+.panel-about__ai-text p:first-child {
   color: var(--color-black);
 }
 
-.panel-aboutai-text p:last-child {
+.panel-about__ai-text p:last-child {
   color: rgba(0, 0, 0, 0.35);
 }
 
-/ ── Panel About — Clients + Industries ─────────────────── /
-.panel-aboutlists {
+/* ── Panel About — Clients + Industries ─────────────────── */
+.panel-about__lists {
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -884,14 +902,14 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-aboutlist-col {
+.panel-about__list-col {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 4px;
 }
 
-.panel-aboutlist-label {
+.panel-about__list-label {
   font-size: 10px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -899,7 +917,7 @@ body {
   font-family: inherit;
 }
 
-.panel-aboutlist {
+.panel-about__list {
   list-style: none;
   font-size: 14px;
   line-height: 120%;
@@ -908,12 +926,12 @@ body {
   font-family: inherit;
 }
 
-.panel-aboutlist li {
+.panel-about__list li {
   line-height: 120%;
 }
 
-/ ── Panel About — Recognition ───────────────────────────── /
-.panel-aboutrecognition {
+/* ── Panel About — Recognition ───────────────────────────── */
+.panel-about__recognition {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -921,8 +939,8 @@ body {
   padding-bottom: 16px;
 }
 
-/ ── Panel About — Now Listening / Reading ───────────────── /
-.panel-aboutnow-item {
+/* ── Panel About — Now Listening / Reading ───────────────── */
+.panel-about__now-item {
   display: flex;
   align-items: flex-start;
   gap: 4px;
@@ -930,14 +948,14 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-aboutnow-content {
+.panel-about__now-content {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 4px;
 }
 
-.panel-aboutnow-label {
+.panel-about__now-label {
   font-size: 10px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -945,7 +963,7 @@ body {
   font-family: inherit;
 }
 
-.panel-aboutnow-value {
+.panel-about__now-value {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
@@ -953,7 +971,7 @@ body {
   font-family: inherit;
 }
 
-.panel-aboutnow-thumb {
+.panel-about__now-thumb {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
@@ -961,21 +979,21 @@ body {
   object-fit: cover;
 }
 
-.panel-aboutnow-thumb--listening {
+.panel-about__now-thumb--listening {
   transform: rotate(5deg);
 }
 
-.panel-aboutnow-thumb--reading {
+.panel-about__now-thumb--reading {
   transform: rotate(-5deg);
 }
 
-/ ── Panel About — Meme ──────────────────────────────────── /
-.panel-aboutmeme {
+/* ── Panel About — Meme ──────────────────────────────────── */
+.panel-about__meme {
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   padding-bottom: 16px;
 }
 
-.panel-aboutmeme img {
+.panel-about__meme img {
   aspect-ratio: 335 / 330;
   width: 100%;
   border-radius: 12px;
@@ -983,8 +1001,8 @@ body {
   display: block;
 }
 
-/ ── Panel About — Location ──────────────────────────────── /
-.panel-aboutlocation {
+/* ── Panel About — Location ──────────────────────────────── */
+.panel-about__location {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -992,7 +1010,7 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-aboutlocation-born {
+.panel-about__location-born {
   font-size: 10px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1000,7 +1018,7 @@ body {
   font-family: inherit;
 }
 
-.panel-aboutlocation-work {
+.panel-about__location-work {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
@@ -1008,8 +1026,8 @@ body {
   font-family: inherit;
 }
 
-/ ── Panel About — Clock Widgets ─────────────────────────── /
-.panel-aboutclocks {
+/* ── Panel About — Clock Widgets ─────────────────────────── */
+.panel-about__clocks {
   display: flex;
   align-items: flex-start;
   gap: 4px;
@@ -1026,13 +1044,13 @@ body {
   padding: 8px;
 }
 
-.clock-widgetsvg {
+.clock-widget__svg {
   width: 64px;
   height: 64px;
   flex-shrink: 0;
 }
 
-.clock-widgetinfo {
+.clock-widget__info {
   display: flex;
   height: 64px;
   flex: 1;
@@ -1042,7 +1060,7 @@ body {
   gap: 8px;
 }
 
-.clock-widgetzone-code {
+.clock-widget__zone-code {
   font-size: 10px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1050,12 +1068,12 @@ body {
   font-family: inherit;
 }
 
-.clock-widgetbottom {
+.clock-widget__bottom {
   display: flex;
   flex-direction: column;
 }
 
-.clock-widgetutc {
+.clock-widget__utc {
   font-size: 10px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1063,7 +1081,7 @@ body {
   font-family: inherit;
 }
 
-.clock-widgetregion {
+.clock-widget__region {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
@@ -1071,7 +1089,6 @@ body {
   font-family: inherit;
 }
 
-/ Clock hands /
 .clock-hand--seconds {
   stroke: var(--color-green);
   stroke-width: 1;
@@ -1091,9 +1108,9 @@ body {
   fill: var(--color-red);
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    PANEL CONTACT — Contact dialog (top-anchored)
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .panel-contact-wrap {
   pointer-events: none;
@@ -1115,16 +1132,14 @@ body {
   border-radius: 16px;
   background-color: var(--color-white);
   padding: 16px;
-  / transform & opacity dikendalikan GSAP /
   transform-origin: 50% 0%;
 }
 
-.panel-contactbuttons {
+.panel-contact__buttons {
   display: flex;
   gap: 16px;
 }
 
-/ Contact button — email /
 .contact-btn {
   position: relative;
   display: flex;
@@ -1157,7 +1172,7 @@ body {
   background-color: #E1306C;
 }
 
-.contact-btnicon {
+.contact-btn__icon {
   position: absolute;
   left: 12px;
   top: 12px;
@@ -1166,12 +1181,12 @@ body {
   flex-shrink: 0;
 }
 
-.contact-btntext-wrap {
+.contact-btn__text-wrap {
   display: flex;
   flex-direction: column;
 }
 
-.contact-btnvia {
+.contact-btn__via {
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1179,7 +1194,7 @@ body {
   font-family: inherit;
 }
 
-.contact-btnchannel {
+.contact-btn__channel {
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1187,17 +1202,16 @@ body {
   font-family: inherit;
 }
 
-/ Video di panel kontak /
-.panel-contactvideo {
+.panel-contact__video {
   display: block;
   height: auto;
   width: 100%;
   border-radius: 8px;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    PANEL THANK YOU — Bottom-right dialog
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .panel-thankyou-wrap {
   pointer-events: none;
@@ -1217,11 +1231,10 @@ body {
   border-radius: 16px;
   background-color: var(--color-white);
   padding: 16px;
-  / transform & opacity dikendalikan GSAP /
   transform-origin: 100% 100%;
 }
 
-.panel-thankyouheader {
+.panel-thankyou__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1230,7 +1243,7 @@ body {
   padding-bottom: 16px;
 }
 
-.panel-thankyoutitle {
+.panel-thankyou__title {
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
@@ -1238,13 +1251,13 @@ body {
   font-family: inherit;
 }
 
-.panel-thankyoubody {
+.panel-thankyou__body {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.panel-thankyoucopy {
+.panel-thankyou__copy {
   font-size: 14px;
   line-height: 120%;
   letter-spacing: -0.01em;
@@ -1252,12 +1265,12 @@ body {
   font-family: inherit;
 }
 
-.panel-thankyoubuttons {
+.panel-thankyou__buttons {
   display: flex;
   gap: 16px;
 }
 
-.panel-thankyouimage {
+.panel-thankyou__image {
   display: block;
   height: 214px;
   width: 100%;
@@ -1265,9 +1278,9 @@ body {
   object-fit: cover;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    CURSOR FOLLOWER — Custom dot cursor
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .cursor-follower {
   pointer-events: none;
@@ -1280,12 +1293,11 @@ body {
   width: 16px;
   height: 16px;
   will-change: transform;
-  / transform dikendalikan GSAP /
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    CANVAS — Particle / confetti layer
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .confetti-canvas {
   pointer-events: none;
@@ -1294,9 +1306,9 @@ body {
   z-index: 9998;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    SAFE AREA HELPERS
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 @supports (padding: max(0px)) {
   .safe-bottom {
@@ -1308,18 +1320,18 @@ body {
   }
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    SCROLL / TOUCH HELPERS
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .touch-none-scroll {
   touch-action: none;
   overscroll-behavior: none;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    CUSTOM SCROLLBAR — Shared
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -1343,18 +1355,18 @@ body {
   background-color: rgba(0, 0, 0, 0.25);
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    SECTION DIVIDER — border dalam panel
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 .section-divider {
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   padding-bottom: 16px;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    UTILITY — Drag-safe image/video
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 img[draggable="false"],
 video {
@@ -1362,21 +1374,18 @@ video {
   user-drag: none;
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    ANIMATION — GSAP transitions (transform-origin overrides)
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
-/ Panel yang transform-origin-nya 50% 0% (top-center) /
 .panel-origin-top {
   transform-origin: 50% 0%;
 }
 
-/ Panel yang transform-origin-nya 100% 100% (bottom-right) /
 .panel-origin-bottom-right {
   transform-origin: 100% 100%;
 }
 
-/ Category icon stack — absolute positioned icons /
 .category-icon-stack {
   position: relative;
   width: 24px;
@@ -1389,12 +1398,11 @@ video {
   inset: 0;
   width: 24px;
   height: 24px;
-  / opacity dikendalikan GSAP /
 }
 
-/ ════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════
    MEDIA QUERIES — Responsive adjustments
-   ════════════════════════════════════════════════════════════ /
+   ════════════════════════════════════════════════════════════ */
 
 @media (max-width: 767px) {
   .panel-about-wrap,
@@ -1423,13 +1431,12 @@ video {
 }
 
 @media (hover: none) and (pointer: coarse) {
-  / Touch device — sembunyikan custom cursor /
+
   .cursor-follower {
     display: none;
   }
 
-  / Tile media langsung visible di touch /
-  .tile_media {
+  .tile__media {
     filter: blur(0px);
     transform: scale(1);
   }
