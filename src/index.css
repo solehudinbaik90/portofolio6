@@ -247,23 +247,16 @@ body {
    ════════════════════════════════════════════════════════════ */
 
 .btn-interactive {
-  -webkit-tap-highlight-color: white;
-  user-select: none;
-  outline: none;
-  border-color: white;
-  border: var(--ui-border);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition:
-    opacity 0.15s ease,
-    transform var(--btn-transition-duration) var(--btn-transition-ease),
-    filter var(--btn-transition-duration) var(--btn-transition-ease);
-  background: none;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   transform-origin: 50%;
+  box-shadow: var(--ui-shadow);
+  border: var(--ui-border);
+  transition: transform var(--btn-transition-duration) var(--btn-transition-ease),
+    filter var(--btn-transition-duration) var(--btn-transition-ease);
+}
+
+.ui-shadow {
+  box-shadow: var(--ui-shadow);
+  border: var(--ui-border);
 }
 
 @media (hover: hover) {
@@ -273,9 +266,7 @@ body {
   }
 }
 
-
 .btn-interactive:active {
-  opacity: 0.85;
   transform: scale(var(--btn-press-scale));
   filter: brightness(var(--btn-hover-brightness));
 }
