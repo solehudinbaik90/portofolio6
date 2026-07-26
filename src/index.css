@@ -247,7 +247,7 @@ body {
    ════════════════════════════════════════════════════════════ */
 
 .btn-interactive {
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: white;
   user-select: none;
   outline: none;
   border-color: white;
