@@ -14,10 +14,8 @@ import {
   HINT_TOUCH,
 } from '../../utils/strings';
 
-
 const ITEM_OFFSET = 72;
 const MAGIC_8_DISMISS_DURATION = 2;
-
 
 function computeOffsets(visibilities) {
   const total = visibilities.length;
@@ -36,37 +34,34 @@ function computeOffsets(visibilities) {
   });
 }
 
-
 function shakeX(tl, target) {
   return tl
     .set(target, { x: 0 })
     .to(target, { x: -16, duration: 0.06, ease: 'power2.out' })
-    .to(target, { x: 16, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { x: -8, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { x: 8, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { x: 0, duration: 0.1, ease: 'power2.out' });
+    .to(target, { x: 16,  duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { x: -8,  duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { x: 8,   duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { x: 0,   duration: 0.1,  ease: 'power2.out' });
 }
-
 
 function shakeY(tl, target) {
   return tl
     .set(target, { y: 0 })
     .to(target, { y: -16, duration: 0.06, ease: 'power2.out' })
-    .to(target, { y: 16, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { y: -8, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { y: 8, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { y: 0, duration: 0.1, ease: 'power2.out' });
+    .to(target, { y: 16,  duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { y: -8,  duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { y: 8,   duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { y: 0,   duration: 0.1,  ease: 'power2.out' });
 }
-
 
 function shakeRotate(tl, target) {
   return tl
     .set(target, { rotation: 0 })
     .to(target, { rotation: -30, duration: 0.06, ease: 'power2.out' })
-    .to(target, { rotation: 30, duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { rotation: 30,  duration: 0.08, ease: 'power2.inOut' })
     .to(target, { rotation: -15, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { rotation: 15, duration: 0.08, ease: 'power2.inOut' })
-    .to(target, { rotation: 0, duration: 0.1, ease: 'power2.out' });
+    .to(target, { rotation: 15,  duration: 0.08, ease: 'power2.inOut' })
+    .to(target, { rotation: 0,   duration: 0.1,  ease: 'power2.out' });
 }
 
 export default function NavBar() {
@@ -75,12 +70,11 @@ export default function NavBar() {
   const { chromeRevealed } = useTiles();
   const isHover = useHoverDevice();
 
-  const focusActive = focusedId !== null && !isClosing;
-  const infoOpen = popup === 'info';
-  const contactOpen = popup === 'contact';
-  const completeOpen = popup === 'complete';
-  const projectOpen = popup === 'project';
-
+  const focusActive   = focusedId !== null && !isClosing;
+  const infoOpen      = popup === 'info';
+  const contactOpen   = popup === 'contact';
+  const completeOpen  = popup === 'complete';
+  const projectOpen   = popup === 'project';
 
   const infoVisible    = !focusActive && !contactOpen && !completeOpen;
   const homeVisible    = !contactOpen && !completeOpen;
@@ -99,8 +93,8 @@ export default function NavBar() {
 
   const hint = isHover ? HINT_HOVER : HINT_TOUCH;
 
-  const magic8Ref     = useRef(null);
-  const magic8TlRef   = useRef(null);
+  const magic8Ref   = useRef(null);
+  const magic8TlRef = useRef(null);
   const [magic8Text, setMagic8Text] = useState('');
 
   const navInit = useRef(false);
@@ -193,15 +187,18 @@ export default function NavBar() {
 
   // ── Handler tombol logo ───────────────────────────────────────────────────
   const handleHome = useCallback(() => {
-    if (isAtHome) {
-      setFocusedId(null);
-      setPopup(null);
+    if (focusActive || projectOpen) {
+      if (focusActive) setFocusedId(null);
+      if (projectOpen) setPopup(null);
       return;
-  }
+    }
+
+
+    if (isAtHome && isHover) {
       const outcomes = ['yes', 'maybe', 'no'];
       const outcome  = outcomes[Math.floor(Math.random() * outcomes.length)];
       const pool =
-        outcome === 'yes' ? MAGIC_8_YES
+        outcome === 'yes'   ? MAGIC_8_YES
         : outcome === 'maybe' ? MAGIC_8_MAYBE
         : MAGIC_8_NO;
       const response = pickRandom(pool);
@@ -211,20 +208,14 @@ export default function NavBar() {
         const tl = gsap.timeline({
           onComplete: () => gsap.set(btn, { clearProps: 'transform' }),
         });
-        if (outcome === 'no')    shakeX(tl, btn);
+        if (outcome === 'no')       shakeX(tl, btn);
         else if (outcome === 'yes') shakeY(tl, btn);
         else                        shakeRotate(tl, btn);
       }
 
       showMagic8(response);
-
-    if (focusActive) {
-      setFocusedId(null);
     }
-    if (projectOpen) {
-      setPopup(null);
-    }
-  }, [isAtHome, focusActive, projectOpen, setFocusedId, setPopup, showMagic8]);
+  }, [isAtHome, isHover, focusActive, projectOpen, setFocusedId, setPopup, showMagic8]);
 
   return (
     <nav className="pointer-events-none fixed inset-x-0 top-8 z-20 flex justify-center">
