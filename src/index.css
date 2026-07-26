@@ -250,6 +250,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   outline: none;
+  border-color: white;
   border: var(--ui-border);
   cursor: pointer;
   touch-action: manipulation;
