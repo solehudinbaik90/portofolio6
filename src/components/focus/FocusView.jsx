@@ -17,7 +17,6 @@ const MOBILE_OPACITY    = 0.001;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
-const MIN_SCALE         = 1;
 
 function getTile(id) {
   return ALL_TILES.find((t) => t.id === id) ?? null;
@@ -132,6 +131,7 @@ export default function FocusView() {
       openTlRef.current?.kill();
       clearTimeout(videoTimer.current);
     };
+
   }, [focusedId, source]);
 
   // ── CLOSE ─────────────────────────────────────────────────────────────────
@@ -148,6 +148,7 @@ export default function FocusView() {
     const mobile = isMobileRef.current;
 
     if (mobile) {
+
       if (!openDoneRef.current) {
         gsap.killTweensOf(source);
         gsap.set(source, { x: 0, y: 0, scale: 1 });
@@ -162,6 +163,7 @@ export default function FocusView() {
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
+
       const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
       const dy = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
       const sx = srcRect.width / (dstRect.width / currentScale);
@@ -206,22 +208,22 @@ export default function FocusView() {
       if (!openDoneRef.current) return;
       e.preventDefault();
 
-      const dims     = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH     = (window.innerHeight - CHROME_PADDING) / dims.h;
-      const maxW     = (window.innerWidth  - SIDE_PAD)       / dims.w;
+      const dims   = scaleRef._dims ?? inner.getBoundingClientRect();
+      const maxH   = (window.innerHeight - 256) / dims.h;
+      const maxW   = (window.innerWidth - SIDE_PAD) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
-      const next     = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
+      const next   = Math.min(maxScale, Math.max(1, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
       if (next === scaleRef.current) {
         const atMax = e.deltaY < 0 && next >= maxScale - 0.001;
-        const atMin = e.deltaY > 0 && next <= MIN_SCALE + 0.001;
+        const atMin = e.deltaY > 0 && next <= 1.001;
         if ((atMax || atMin) && !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
           snapAnimRef.current = gsap.timeline()
-            .to(inner, { x: -16, duration: 0.06, ease: 'power2.out'    })
-            .to(inner, { x:  16, duration: 0.08, ease: 'power2.inOut'  })
-            .to(inner, { x:  -8, duration: 0.08, ease: 'power2.inOut'  })
-            .to(inner, { x:   8, duration: 0.08, ease: 'power2.inOut'  })
-            .to(inner, { x:   0, duration: 0.10, ease: 'power2.out'    });
+            .to(inner, { x: -16, duration: 0.06, ease: 'power2.out' })
+            .to(inner, { x: 16,  duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: -8,  duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: 8,   duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: 0,   duration: 0.1,  ease: 'power2.out' });
         }
         return;
       }
@@ -229,9 +231,9 @@ export default function FocusView() {
       scaleRef.current = next;
       scaleAnimRef.current?.kill();
       scaleAnimRef.current = gsap.to(inner, {
-        scale:    next,
+        scale: next,
         duration: 0.9,
-        ease:     SNAP_EASE,
+        ease: SNAP_EASE,
         overwrite: 'auto',
       });
     };
@@ -244,18 +246,10 @@ export default function FocusView() {
   const tile = getTile(focusedId);
   if (!tile) return null;
 
-  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size];
+  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size];
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-
-  const focusVar = isLandscape
-    ? 'var(--tile-focus-w-landscape)'
-    : 'var(--tile-focus-w)';
-
-  const width = [
-    focusVar,
-    `calc(100vw - ${SIDE_PAD}px)`,
-    `calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH})`,
-  ].join(', ');
+  const focusVar = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
     <div
@@ -274,7 +268,7 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
         style={{
-          width: `min(${width})`,
+          width,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current && { opacity: MOBILE_OPACITY }),
         }}
@@ -313,3 +307,5 @@ export default function FocusView() {
     </div>
   );
 }
+
+const MIN_SCALE = 1;
