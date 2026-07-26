@@ -19,7 +19,17 @@ const DRAG_TILE_SCALE  = 0.9;
 const BLUR_ON          = 'blur(56px)';
 const BLUR_OFF         = 'blur(0px)';
 
-// ── CSS classes ──────────────────────────────────────────────────────────────
+
+function getColWidth() {
+  if (typeof window === 'undefined') return 216;
+  if (window.innerWidth >= 1920) return 480;
+  if (window.innerWidth >= 768)  return 360;
+  return 216;
+}
+
+
+const COL_WIDTH_CLASS =
+  'flex w-[216px] shrink-0 flex-col gap-4 min-[768px]:w-[360px] min-[1920px]:w-[480px]';
 
 const MEDIA_HOVER_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover ' +
@@ -30,13 +40,6 @@ const MEDIA_HOVER_CLASS =
 const MEDIA_TOUCH_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover';
 
-function getColWidth() {
-  if (typeof window === 'undefined') return 216;
-  if (window.innerWidth >= 1920) return 480;
-  if (window.innerWidth >= 768) return 360;
-  return 216;
-}
-
 function calcRepeatX(viewW, totalW) {
   return Math.max(2, Math.ceil(viewW / totalW) + 1);
 }
@@ -46,9 +49,9 @@ function calcRepeatY(viewH, colH) {
 
 export default function Board() {
   const { columns, nonce, transitioning, chromeRevealed } = useTiles();
-  const { focusedId, source, isClosing, openFocus } = useFocus();
-  const { markDiscovered, isDiscovered } = useDiscoveryActions();
-  const isHover = useHoverDevice();
+  const { focusedId, source, isClosing, openFocus }        = useFocus();
+  const { markDiscovered, isDiscovered }                   = useDiscoveryActions();
+  const isHover                                            = useHoverDevice();
 
   const wrapRef     = useRef(null);
   const innerRef    = useRef(null);
@@ -72,6 +75,7 @@ export default function Board() {
   const [repeatX, setRepeatX] = useState(2);
   const [repeatY, setRepeatY] = useState(2);
 
+  // ── will-change management ────────────────────────────────────────────────
   const setWillChange = useCallback((active) => {
     if (willChange.current === active) return;
     willChange.current = active;
@@ -82,6 +86,7 @@ export default function Board() {
     }
   }, []);
 
+  // ── Apply positions (wrapped infinite scroll) ─────────────────────────────
   const applyPositions = useCallback(() => {
     const cw   = colWidthRef.current;
     const cols = colsRef.current;
@@ -96,10 +101,8 @@ export default function Board() {
     const totalRepCols = (repeatX ?? 2) * numCols;
     const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
 
-    if (innerRef.current) {
-      innerRef.current.style.transform =
-        `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
-    }
+    innerRef.current.style.transform =
+      `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
 
     const totalCols = colRefs.current.length;
     for (let ci = 0; ci < totalCols; ci++) {
@@ -116,6 +119,7 @@ export default function Board() {
     }
   }, [repeatX]);
 
+  // ── Lerp loop ─────────────────────────────────────────────────────────────
   const stopLerp = useCallback(() => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
@@ -147,6 +151,7 @@ export default function Board() {
     rafRef.current = requestAnimationFrame(loop);
   }, [applyPositions, setWillChange]);
 
+  // ── Hitung repeat tiles ───────────────────────────────────────────────────
   const recomputeRepeat = useCallback(() => {
     const cols = colsRef.current;
     const cw   = colWidthRef.current;
@@ -167,6 +172,7 @@ export default function Board() {
     setRepeatY(ry);
   }, []);
 
+  // ── Sync columns → layout ─────────────────────────────────────────────────
   useEffect(() => {
     if (colOffsets.current.length !== columns.length) {
       colOffsets.current = columns.map(() => Math.random());
@@ -177,6 +183,7 @@ export default function Board() {
   useEffect(() => { recomputeRepeat(); }, [columns, recomputeRepeat]);
   useEffect(() => { applyPositions(); }, [repeatX, repeatY, applyPositions]);
 
+  // ── Resize handler ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = () => {
       colWidthRef.current = getColWidth();
@@ -193,8 +200,7 @@ export default function Board() {
     }
   }, []);
 
-  // ── Tile reveal/hide ────────────────
-
+  // ── Tile reveal initial (hidden sebelum chrome siap) ─────────────────────
   const initHidden = useRef(false);
   useLayoutEffect(() => {
     if (!isHover) return;
@@ -206,6 +212,7 @@ export default function Board() {
     }
   }, [columns, isHover]);
 
+  // ── Reveal setelah loading selesai ────────────────────────────────────────
   useEffect(() => {
     if (!chromeRevealed || revealed.current) return;
     revealed.current = true;
@@ -217,24 +224,22 @@ export default function Board() {
     if (isHover) {
       scaleAnim.current = gsap.to(tiles, {
         scale: 1, opacity: 1,
-        duration: 0.7, ease: 'power2.out',
-        delay: 0.3, overwrite: true,
+        duration: 0.7, ease: 'power2.out', delay: 0.3, overwrite: true,
       });
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_OFF,
-        duration: 0.7, ease: 'expo.out',
-        delay: 0.3, overwrite: true,
+        duration: 0.7, ease: 'expo.out', delay: 0.3, overwrite: true,
         onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
       });
     } else {
       scaleAnim.current = gsap.to(tiles, {
         scale: 1, opacity: 1,
-        duration: 0.7, ease: 'power2.out',
-        delay: 0.3, overwrite: true,
+        duration: 0.7, ease: 'power2.out', delay: 0.3, overwrite: true,
       });
     }
   }, [chromeRevealed, isHover]);
 
+  // ── Transisi kategori (hide) ──────────────────────────────────────────────
   useEffect(() => {
     if (!transitioning) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
@@ -253,6 +258,7 @@ export default function Board() {
     }
   }, [transitioning, isHover]);
 
+  // ── Nonce: kategori baru (reveal ulang) ───────────────────────────────────
   useLayoutEffect(() => {
     if (nonce === 0) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
@@ -280,15 +286,14 @@ export default function Board() {
     }
   }, [nonce, isHover]);
 
+  // ── Focus: sembunyikan/tampilkan tiles lain ───────────────────────────────
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
     const allTiles = Array.from(inner.querySelectorAll('[data-tile-id]'));
 
     if (focusedId && !isClosing) {
-      const others = source
-        ? allTiles.filter((el) => el !== source)
-        : allTiles;
+      const others = source ? allTiles.filter((el) => el !== source) : allTiles;
       gsap.to(others, {
         scale: 0, opacity: 0,
         duration: 0.7, ease: 'power2.inOut', overwrite: true,
@@ -301,9 +306,7 @@ export default function Board() {
         });
       }
     } else if (focusedId && isClosing) {
-      const others = source
-        ? allTiles.filter((el) => el !== source)
-        : allTiles;
+      const others = source ? allTiles.filter((el) => el !== source) : allTiles;
       gsap.to(others, {
         scale: 1, opacity: 1,
         duration: 0.7, ease: 'power2.out', overwrite: true,
@@ -399,16 +402,16 @@ export default function Board() {
       stopLerp();
       capturing  = true;
       hasDragged = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      originX = posRef.current.x;
-      originY = posRef.current.y;
-      lastT = e.timeStamp;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      vx = vy = 0;
-      startEl   = e.target;
-      captureId = e.pointerId;
+      startX     = e.clientX;
+      startY     = e.clientY;
+      originX    = posRef.current.x;
+      originY    = posRef.current.y;
+      lastT      = e.timeStamp;
+      lastX      = e.clientX;
+      lastY      = e.clientY;
+      vx = vy    = 0;
+      startEl    = e.target;
+      captureId  = e.pointerId;
       wrap.setPointerCapture(e.pointerId);
       wrap.style.cursor = 'grabbing';
       squashTiles();
@@ -466,10 +469,8 @@ export default function Board() {
       const targetY = posRef.current.y + vy * INERTIA_FRICTION;
 
       inertiaRef.current = gsap.to(posRef.current, {
-        x: targetX,
-        y: targetY,
-        duration: INERTIA_DURATION,
-        ease: 'expo.out',
+        x: targetX, y: targetY,
+        duration: INERTIA_DURATION, ease: 'expo.out',
         onUpdate: applyPositions,
         onComplete: () => setWillChange(false),
       });
@@ -565,7 +566,6 @@ export default function Board() {
   // ── Render ────────────────────────────────────────────────────────────────
   const numCols   = columns.length;
   const totalCols = repeatX * numCols;
-
   const mediaClass = isHover ? MEDIA_HOVER_CLASS : MEDIA_TOUCH_CLASS;
 
   return (
@@ -585,7 +585,7 @@ export default function Board() {
             <div
               key={ci}
               ref={(el) => { colRefs.current[ci] = el; }}
-              className="flex w-[216px] shrink-0 flex-col gap-4 min-[768px]:w-[360px] min-[1920px]:w-[480px]"
+              className={COL_WIDTH_CLASS}
             >
               {Array.from({ length: repeatY }).flatMap((_, ri) =>
                 col.map((tile) => {
@@ -593,9 +593,10 @@ export default function Board() {
                   const isFocused   = focusedId === tile.id;
                   const discovered  = isDiscovered(tile.id);
                   const useVideo    = tile.media.kind === 'video' && (isHover || !tile.media.posterSrc);
-                  const imgSrc      = tile.media.kind === 'video'
-                    ? (tile.media.posterSrc ?? tile.media.src)
-                    : tile.media.src;
+                  const imgSrc      =
+                    tile.media.kind === 'video'
+                      ? (tile.media.posterSrc ?? tile.media.src)
+                      : tile.media.src;
 
                   return (
                     <div
@@ -607,6 +608,7 @@ export default function Board() {
                         style={{ backgroundColor: tileColor(tile) }}
                         className={`group absolute inset-0 overflow-hidden rounded-lg${discovered ? ' discovered' : ''}`}
                       >
+
                         {tile.media.kind === 'video' && (
                           <div
                             aria-hidden
@@ -617,7 +619,9 @@ export default function Board() {
                               <path d="M2.5 2.495C2.5 2.009 2.5 1.766 2.601 1.633C2.689 1.516 2.824 1.444 2.97 1.435C3.138 1.425 3.34 1.56 3.744 1.829L9.002 5.334C9.335 5.557 9.502 5.668 9.56 5.808C9.611 5.931 9.611 6.069 9.56 6.191C9.502 6.332 9.335 6.443 9.002 6.666L3.744 10.171C3.34 10.44 3.138 10.575 2.97 10.565C2.824 10.556 2.689 10.484 2.601 10.367C2.5 10.233 2.5 9.991 2.5 9.505V2.495Z" fill="#00000054" />
                               <path d="M2.955 1.186C3.111 1.176 3.256 1.236 3.388 1.308C3.522 1.38 3.685 1.489 3.883 1.621L9.141 5.126C9.303 5.234 9.439 5.325 9.541 5.407C9.643 5.49 9.738 5.585 9.791 5.713C9.867 5.897 9.867 6.103 9.791 6.287C9.738 6.415 9.643 6.509 9.541 6.592C9.439 6.674 9.304 6.765 9.141 6.874L3.883 10.379C3.685 10.511 3.522 10.62 3.388 10.692C3.256 10.764 3.111 10.824 2.955 10.815C2.736 10.801 2.535 10.693 2.402 10.519C2.308 10.394 2.277 10.241 2.264 10.091C2.25 9.939 2.25 9.743 2.25 9.505V2.495C2.25 2.257 2.25 2.061 2.264 1.909C2.277 1.759 2.308 1.606 2.402 1.481C2.535 1.307 2.736 1.199 2.955 1.186Z" fill="none" stroke="#00000054" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>video</span>
+                            <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>
+                              video
+                            </span>
                           </div>
                         )}
 
