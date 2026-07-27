@@ -133,7 +133,7 @@ export default function DiscoveryCounter() {
 
 
   return (
-    <div className="pointer-events-none fixed bottom-8 right-8 z-20">
+    <div className="pointer-events-none fixed bottom-8 right-8 z-20 hidden min-[768px]:block">
 
       <div className="pointer-events-none absolute bottom-full right-0 mb-4">
         <div
