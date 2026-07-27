@@ -2,7 +2,7 @@ import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { getTile } from '../../data/tiles';
+import { getTile, ALL_TILES } from '../../data/tiles';
 import { TILE_ASPECT_CLASSES, TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
