@@ -83,7 +83,3 @@ export const WEB_TILES = withCategory('web', [
 ]);
 
 export const ALL_TILES = [...BRAND_TILES, ...PRODUCT_TILES, ...WEB_TILES];
-
-export const getTile = (id) => {
-  return ALL_TILES.find(tile => tile.id === id);
-};
