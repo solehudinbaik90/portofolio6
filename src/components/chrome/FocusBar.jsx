@@ -2,7 +2,7 @@ import { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { usePopup } from '../../contexts/PopupContext';
-import { getTile, ALL_TILES } from '../../data/tiles';
+import { getTile } from '../../data/tiles';
 import { getProject } from '../../data/projects';
 
 const ANIM_IN_SCALE  = { duration: 0.6, ease: 'power2.out' };
