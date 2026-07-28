@@ -16,9 +16,10 @@ const SCROLL_MULT      = 1.0125;
 const LERP_FACTOR      = 0.15;
 const HOVER_SCALE      = 1.0125;
 const DRAG_TILE_SCALE  = 0.9;
-const BLUR_ON          = 'blur(56px)';
+const BLUR_ON          = 'blur(32px)';
 const BLUR_OFF         = 'blur(0px)';
-const MIN_SCALE        = 1;
+
+// ── CSS classes ──────────────────────────────────────────────────────────────
 
 const MEDIA_HOVER_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover ' +
@@ -70,8 +71,6 @@ export default function Board() {
 
   const [repeatX, setRepeatX] = useState(2);
   const [repeatY, setRepeatY] = useState(2);
-
-  // ── Utility ───────────────────────────────────────────────────────────────
 
   const setWillChange = useCallback((active) => {
     if (willChange.current === active) return;
@@ -168,8 +167,6 @@ export default function Board() {
     setRepeatY(ry);
   }, []);
 
-  // ── Layout effects ────────────────────────────────────────────────────────
-
   useEffect(() => {
     if (colOffsets.current.length !== columns.length) {
       colOffsets.current = columns.map(() => Math.random());
@@ -196,47 +193,62 @@ export default function Board() {
     }
   }, []);
 
-  // ── Tile reveal logic (FIX UTAMA) ─────────────────────────────────────────
+  // ── Tile reveal/hide ────────────────
 
-  const everHidden  = useRef(false);
-  const lastNonce   = useRef(-1);
   useLayoutEffect(() => {
-    if (everHidden.current) return;
-    if (!chromeRevealed) {
-      const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
-      if (tiles?.length) {
-        gsap.set(tiles, { scale: 0, opacity: 0, filter: isHover ? BLUR_ON : 'none' });
-        everHidden.current = true;
-      }
-    }
-
-  }, [columns]);
-  useEffect(() => {
-    if (!chromeRevealed) return;
-    if (revealed.current) return;
-    revealed.current = true;
+  if (!isHover) return;
+  if (revealed.current) {
 
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (!tiles?.length) return;
+    const newTiles = Array.from(tiles).filter(el => {
+      return Number(gsap.getProperty(el, 'scale')) < 0.1;
+    });
+    if (newTiles.length > 0) {
+      gsap.set(newTiles, { scale: 0, opacity: 0, filter: BLURON });
+      gsap.to(newTiles, { scale: 1, opacity: 1, duration: 0.5, ease: 'power2.out', overwrite: true });
+      gsap.to(newTiles, {
+        filter: BLUROFF, duration: 0.5, ease: 'expo.out', overwrite: true,
+        onComplete: () => gsap.set(newTiles, { clearProps: 'filter' }),
+      });
+    }
+    return;
+  }
 
-    scaleAnim.current?.kill();
-    filterAnim.current?.kill();
+  const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
+  if (tiles?.length) {
+    gsap.set(tiles, { scale: 0, opacity: 0, filter: BLURON });
+  }
+}, [columns, repeatX, repeatY, isHover]);
 
+  useEffect(() => {
+  if (!chromeRevealed || revealed.current) return;
+  revealed.current = true;
+  const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
+  if (!tiles?.length) return;
+  scaleAnim.current?.kill();
+  filterAnim.current?.kill();
+
+  if (isHover) {
     scaleAnim.current = gsap.to(tiles, {
       scale: 1, opacity: 1,
       duration: 0.7, ease: 'power2.out',
       delay: 0.3, overwrite: true,
     });
-
-    if (isHover) {
-      filterAnim.current = gsap.to(tiles, {
-        filter: BLUR_OFF,
-        duration: 0.7, ease: 'expo.out',
-        delay: 0.3, overwrite: true,
-        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-      });
-    }
-  }, [chromeRevealed, isHover]);
+    filterAnim.current = gsap.to(tiles, {
+      filter: BLUR_OFF,
+      duration: 0.7, ease: 'expo.out',
+      delay: 0.3, overwrite: true,
+      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
+    });
+  } else {
+    scaleAnim.current = gsap.to(tiles, {
+      scale: 1, opacity: 1,
+      duration: 0.7, ease: 'power2.out',
+      delay: 0.3, overwrite: true,
+    });
+  }
+}, [chromeRevealed, isHover]);
 
   useEffect(() => {
     if (!transitioning) return;
@@ -244,12 +256,10 @@ export default function Board() {
     if (!tiles?.length) return;
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
-
     scaleAnim.current = gsap.to(tiles, {
       scale: 0, opacity: 0,
       duration: 0.6, ease: 'power3.inOut', overwrite: true,
     });
-
     if (isHover) {
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_ON,
@@ -260,36 +270,31 @@ export default function Board() {
 
   useLayoutEffect(() => {
     if (nonce === 0) return;
-    if (lastNonce.current === nonce) return;
-    lastNonce.current = nonce;
-
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (!tiles?.length) return;
-
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
 
-    gsap.set(tiles, {
-      scale: 0,
-      opacity: 0,
-      filter: isHover ? BLUR_ON : 'none',
-    });
-
-    scaleAnim.current = gsap.to(tiles, {
-      scale: 1, opacity: 1,
-      duration: 1, ease: 'power3.out', overwrite: true,
-    });
-
     if (isHover) {
+      gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 1, ease: 'power3.out', overwrite: true,
+      });
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_OFF,
         duration: 1, ease: 'expo.out', overwrite: true,
         onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
       });
+    } else {
+      gsap.set(tiles, { scale: 0, opacity: 0 });
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 1, ease: 'power3.out', overwrite: true,
+      });
     }
   }, [nonce, isHover]);
 
-  // ── Focus state: sembunyikan/tampilkan tiles saat tile difokus ────────────
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
@@ -575,6 +580,7 @@ export default function Board() {
   // ── Render ────────────────────────────────────────────────────────────────
   const numCols   = columns.length;
   const totalCols = repeatX * numCols;
+
   const mediaClass = isHover ? MEDIA_HOVER_CLASS : MEDIA_TOUCH_CLASS;
 
   return (
@@ -616,7 +622,6 @@ export default function Board() {
                         style={{ backgroundColor: tileColor(tile) }}
                         className={`group absolute inset-0 overflow-hidden rounded-lg${discovered ? ' discovered' : ''}`}
                       >
-
                         {tile.media.kind === 'video' && (
                           <div
                             aria-hidden
