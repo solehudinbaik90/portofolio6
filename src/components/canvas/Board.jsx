@@ -195,60 +195,45 @@ export default function Board() {
 
   // ── Tile reveal/hide ────────────────
 
+  const initHidden = useRef(false);
   useLayoutEffect(() => {
-  if (!isHover) return;
-  if (revealed.current) {
-
+    if (!isHover) return;
+    if (initHidden.current) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
-    if (!tiles?.length) return;
-    const newTiles = Array.from(tiles).filter(el => {
-      return Number(gsap.getProperty(el, 'scale')) < 0.1;
-    });
-    if (newTiles.length > 0) {
-      gsap.set(newTiles, { scale: 0, opacity: 0, filter: BLURON });
-      gsap.to(newTiles, { scale: 1, opacity: 1, duration: 0.5, ease: 'power2.out', overwrite: true });
-      gsap.to(newTiles, {
-        filter: BLUROFF, duration: 0.5, ease: 'expo.out', overwrite: true,
-        onComplete: () => gsap.set(newTiles, { clearProps: 'filter' }),
-      });
+    if (tiles?.length) {
+      gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
+      initHidden.current = true;
     }
-    return;
-  }
-
-  const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
-  if (tiles?.length) {
-    gsap.set(tiles, { scale: 0, opacity: 0, filter: BLURON });
-  }
-}, [columns, repeatX, repeatY, isHover]);
+  }, [columns, isHover]);
 
   useEffect(() => {
-  if (!chromeRevealed || revealed.current) return;
-  revealed.current = true;
-  const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
-  if (!tiles?.length) return;
-  scaleAnim.current?.kill();
-  filterAnim.current?.kill();
+    if (!chromeRevealed || revealed.current) return;
+    revealed.current = true;
+    const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
+    if (!tiles?.length) return;
+    scaleAnim.current?.kill();
+    filterAnim.current?.kill();
 
-  if (isHover) {
-    scaleAnim.current = gsap.to(tiles, {
-      scale: 1, opacity: 1,
-      duration: 0.7, ease: 'power2.out',
-      delay: 0.3, overwrite: true,
-    });
-    filterAnim.current = gsap.to(tiles, {
-      filter: BLUR_OFF,
-      duration: 0.7, ease: 'expo.out',
-      delay: 0.3, overwrite: true,
-      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-    });
-  } else {
-    scaleAnim.current = gsap.to(tiles, {
-      scale: 1, opacity: 1,
-      duration: 0.7, ease: 'power2.out',
-      delay: 0.3, overwrite: true,
-    });
-  }
-}, [chromeRevealed, isHover]);
+    if (isHover) {
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 0.7, ease: 'power2.out',
+        delay: 0.3, overwrite: true,
+      });
+      filterAnim.current = gsap.to(tiles, {
+        filter: BLUR_OFF,
+        duration: 0.7, ease: 'expo.out',
+        delay: 0.3, overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
+      });
+    } else {
+      scaleAnim.current = gsap.to(tiles, {
+        scale: 1, opacity: 1,
+        duration: 0.7, ease: 'power2.out',
+        delay: 0.3, overwrite: true,
+      });
+    }
+  }, [chromeRevealed, isHover]);
 
   useEffect(() => {
     if (!transitioning) return;
