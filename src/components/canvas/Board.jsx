@@ -23,7 +23,7 @@ const BLUR_OFF         = 'blur(0px)';
 
 const MEDIA_HOVER_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover ' +
-  'blur-[32px] scale-125 ' +
+  'blur-[0px] scale-125 ' +
   'group-hover:blur-[0px] group-hover:scale-100 ' +
   'group-[.discovered]:blur-[0px] group-[.discovered]:scale-100';
 
