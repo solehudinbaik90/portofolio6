@@ -224,6 +224,7 @@ export default function Board() {
         filter: BLUR_OFF,
         duration: 0.7, ease: 'expo.out',
         delay: 0.3, overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
       });
     } else {
       scaleAnim.current = gsap.to(tiles, {
@@ -268,6 +269,7 @@ export default function Board() {
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_OFF,
         duration: 1, ease: 'expo.out', overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
       });
     } else {
       gsap.set(tiles, { scale: 0, opacity: 0 });
@@ -311,6 +313,7 @@ export default function Board() {
         filterAnim.current = gsap.to(others, {
           filter: BLUR_OFF,
           duration: 0.7, ease: 'expo.out', overwrite: true,
+          onComplete: () => gsap.set(others, { clearProps: 'filter' }),
         });
       }
     }
@@ -568,7 +571,7 @@ export default function Board() {
   return (
     <div
       ref={wrapRef}
-      className="fixed inset-0 z-0 cursor-grab touch-none select-none overflow-hidden"
+      className="fixed inset-0 cursor-grab touch-none select-none overflow-hidden"
       style={{ backgroundColor: '#f1f1f1' }}
     >
       <div
