@@ -16,14 +16,14 @@ const SCROLL_MULT      = 1.0125;
 const LERP_FACTOR      = 0.15;
 const HOVER_SCALE      = 1.0125;
 const DRAG_TILE_SCALE  = 0.9;
-const BLUR_ON          = 'blur(0px)';
+const BLUR_ON          = 'blur(56px)';
 const BLUR_OFF         = 'blur(0px)';
 
 // ── CSS classes ──────────────────────────────────────────────────────────────
 
 const MEDIA_HOVER_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover ' +
-  'blur-[0px] scale-125 ' +
+  'blur-[32px] scale-125 ' +
   'group-hover:blur-[0px] group-hover:scale-100 ' +
   'group-[.discovered]:blur-[0px] group-[.discovered]:scale-100';
 
