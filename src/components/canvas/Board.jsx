@@ -7,6 +7,8 @@ import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { tileColumnHeight, TILE_ASPECT_CLASSES } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const GAP              = 16;
 const DRAG_THRESHOLD   = 5;
 const VELOCITY_WINDOW  = 100;
@@ -19,7 +21,24 @@ const DRAG_TILE_SCALE  = 0.9;
 const BLUR_ON          = 'blur(56px)';
 const BLUR_OFF         = 'blur(0px)';
 
-// ── CSS classes ──────────────────────────────────────────────────────────────
+const ANIM_IN     = { duration: 0.4, ease: 'power2.out' };
+const ANIM_OUT    = { duration: 0.3, ease: 'power2.in' };
+const ANIM_INOUT  = { duration: 0.4, ease: 'power2.inOut' };
+const FOCUS_IN    = { duration: 0.6, ease: 'power2.out' };
+const FOCUS_OUT   = { duration: 0.6, ease: 'power2.out' };
+const FOCUS_SCALE_IN  = { duration: 0.3, ease: 'power2.out' };
+const FOCUS_SCALE_OUT = { duration: 0.2, ease: 'power2.in' };
+
+const TILE_REVEAL_DURATION = 0.7;
+const TILE_BLUR_EASE       = 'expo.out';
+const TILE_REVEAL_EASE     = 'power2.out';
+const TILE_REVEAL_DELAY    = 0.3;
+
+const CATEGORY_TRANSITION_DURATION = 0.6;
+const CATEGORY_EASE_OUT = 'power3.inOut';
+const CATEGORY_EASE_BLUR = 'power3.inOut';
+
+// ── CSS classes ───────────────────────────────────────────────────────────────
 
 const MEDIA_HOVER_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover ' +
@@ -30,31 +49,65 @@ const MEDIA_HOVER_CLASS =
 const MEDIA_TOUCH_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function getColWidth() {
   if (typeof window === 'undefined') return 216;
   if (window.innerWidth >= 1920) return 480;
-  if (window.innerWidth >= 768) return 360;
+  if (window.innerWidth >= 768)  return 360;
   return 216;
+}
+
+function wrapDelta(value, range) {
+  const mod = ((value % range) + range) % range;
+  return mod > range / 2 ? mod - range : mod;
 }
 
 function calcRepeatX(viewW, totalW) {
   return Math.max(2, Math.ceil(viewW / totalW) + 1);
 }
+
 function calcRepeatY(viewH, colH) {
   return Math.max(2, Math.ceil(viewH / colH) + 1);
 }
 
+// ── Video helpers ─────────────────────────────────────────────────────────────
+
+function primeVideo(el) {
+  if (el.dataset.primed) return;
+  el.dataset.primed = '1';
+  const prime = () => { try { el.currentTime = 0.001; } catch {} };
+  if (el.readyState >= 1) prime();
+  else {
+    el.addEventListener('loadedmetadata', prime, { once: true });
+    el.preload = 'metadata';
+    el.load();
+  }
+}
+
+function playVideo(container) {
+  const v = container.querySelector('video');
+  if (v && v.paused) v.play().catch(() => {});
+}
+
+function pauseVideo(container) {
+  const v = container.querySelector('video');
+  if (v) { v.pause(); v.currentTime = 0; }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function Board() {
   const { columns, nonce, transitioning, chromeRevealed } = useTiles();
-  const { focusedId, source, isClosing, openFocus } = useFocus();
-  const { markDiscovered, isDiscovered } = useDiscoveryActions();
+  const { focusedId, source, isClosing, openFocus }       = useFocus();
+  const { markDiscovered, isDiscovered }                  = useDiscoveryActions();
   const isHover = useHoverDevice();
 
-  const wrapRef     = useRef(null);
-  const innerRef    = useRef(null);
-  const colRefs     = useRef([]);
-  const colsRef     = useRef(columns);
-  colsRef.current   = columns;
+  const wrapRef    = useRef(null);
+  const innerRef   = useRef(null);
+  const colRefs    = useRef([]);
+  const colsRef    = useRef(columns);
+  colsRef.current  = columns;
 
   const posRef      = useRef({ x: 0, y: 0 });
   const targetRef   = useRef({ x: 0, y: 0 });
@@ -72,15 +125,17 @@ export default function Board() {
   const [repeatX, setRepeatX] = useState(2);
   const [repeatY, setRepeatY] = useState(2);
 
+  // ── Will-change toggle ─────────────────────────────────────────────────────
+
   const setWillChange = useCallback((active) => {
     if (willChange.current === active) return;
     willChange.current = active;
     const val = active ? 'transform' : 'auto';
     if (innerRef.current) innerRef.current.style.willChange = val;
-    for (const el of colRefs.current) {
-      if (el) el.style.willChange = val;
-    }
+    colRefs.current.forEach((el) => { if (el) el.style.willChange = val; });
   }, []);
+
+  // ── Position application ───────────────────────────────────────────────────
 
   const applyPositions = useCallback(() => {
     const cw   = colWidthRef.current;
@@ -90,16 +145,13 @@ export default function Board() {
     const numCols = cols.length;
     const stride  = cw + GAP;
     const totalW  = numCols * stride;
-    const rawX    = posRef.current.x;
-    const wrappedX = ((rawX % totalW) + totalW) % totalW;
+    const wrappedX = ((posRef.current.x % totalW) + totalW) % totalW;
 
     const totalRepCols = (repeatX ?? 2) * numCols;
     const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
 
-    if (innerRef.current) {
-      innerRef.current.style.transform =
-        `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
-    }
+    innerRef.current.style.transform =
+      `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
 
     const totalCols = colRefs.current.length;
     for (let ci = 0; ci < totalCols; ci++) {
@@ -110,11 +162,12 @@ export default function Board() {
       if (colH <= 0) continue;
       const offset   = colOffsets.current[ci % numCols] ?? 0;
       const raw      = posRef.current.y + offset * colH;
-      const mod      = ((raw % colH) + colH) % colH;
-      const wrappedY = mod > colH / 2 ? mod - colH : mod;
+      const wrappedY = wrapDelta(raw, colH);
       el.style.transform = `translate3d(0, ${wrappedY}px, 0)`;
     }
   }, [repeatX]);
+
+  // ── LERP loop ──────────────────────────────────────────────────────────────
 
   const stopLerp = useCallback(() => {
     if (rafRef.current) {
@@ -134,7 +187,7 @@ export default function Board() {
       if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
         posRef.current.x = targetRef.current.x;
         posRef.current.y = targetRef.current.y;
-        rafRef.current = 0;
+        rafRef.current   = 0;
         applyPositions();
         setWillChange(false);
         return;
@@ -147,14 +200,15 @@ export default function Board() {
     rafRef.current = requestAnimationFrame(loop);
   }, [applyPositions, setWillChange]);
 
+  // ── Repeat calculation ─────────────────────────────────────────────────────
+
   const recomputeRepeat = useCallback(() => {
     const cols = colsRef.current;
     const cw   = colWidthRef.current;
     if (!cols.length) return;
 
-    const numCols = cols.length;
-    const totalW  = numCols * (cw + GAP);
-    const rx      = calcRepeatX(window.innerWidth, totalW);
+    const totalW = cols.length * (cw + GAP);
+    const rx     = calcRepeatX(window.innerWidth, totalW);
 
     let minH = Infinity;
     for (const col of cols) {
@@ -167,6 +221,12 @@ export default function Board() {
     setRepeatY(ry);
   }, []);
 
+  // ── Sync effects ───────────────────────────────────────────────────────────
+
+  useLayoutEffect(() => {
+    if (innerRef.current) gsap.set(innerRef.current, { xPercent: -50, yPercent: -50 });
+  }, []);
+
   useEffect(() => {
     if (colOffsets.current.length !== columns.length) {
       colOffsets.current = columns.map(() => Math.random());
@@ -174,8 +234,8 @@ export default function Board() {
     applyPositions();
   }, [columns, applyPositions]);
 
-  useEffect(() => { recomputeRepeat(); }, [columns, recomputeRepeat]);
-  useEffect(() => { applyPositions(); }, [repeatX, repeatY, applyPositions]);
+  useEffect(() => { recomputeRepeat(); },             [columns, recomputeRepeat]);
+  useEffect(() => { applyPositions(); },              [repeatX, repeatY, applyPositions]);
 
   useEffect(() => {
     const handler = () => {
@@ -187,24 +247,17 @@ export default function Board() {
     return () => window.removeEventListener('resize', handler);
   }, [recomputeRepeat, applyPositions]);
 
-  useLayoutEffect(() => {
-    if (innerRef.current) {
-      gsap.set(innerRef.current, { xPercent: -50, yPercent: -50 });
-    }
-  }, []);
-
-  // ── Tile reveal/hide ────────────────
+  // ── Tile visibility animations ─────────────────────────────────────────────
 
   const initHidden = useRef(false);
+
   useLayoutEffect(() => {
-    if (!isHover) return;
     if (initHidden.current) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
-    if (tiles?.length) {
-      gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
-      initHidden.current = true;
-    }
-  }, [columns, isHover]);
+    if (!tiles?.length) return;
+    gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
+    initHidden.current = true;
+  }, [columns]);
 
   useEffect(() => {
     if (!chromeRevealed || revealed.current) return;
@@ -214,23 +267,22 @@ export default function Board() {
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
 
+    scaleAnim.current = gsap.to(tiles, {
+      scale: 1, opacity: 1,
+      duration: TILE_REVEAL_DURATION,
+      ease: TILE_REVEAL_EASE,
+      delay: TILE_REVEAL_DELAY,
+      overwrite: true,
+    });
+
     if (isHover) {
-      scaleAnim.current = gsap.to(tiles, {
-        scale: 1, opacity: 1,
-        duration: 0.7, ease: 'power2.out',
-        delay: 0.3, overwrite: true,
-      });
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_OFF,
-        duration: 0.7, ease: 'expo.out',
-        delay: 0.3, overwrite: true,
+        duration: TILE_REVEAL_DURATION,
+        ease: TILE_BLUR_EASE,
+        delay: TILE_REVEAL_DELAY,
+        overwrite: true,
         onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-      });
-    } else {
-      scaleAnim.current = gsap.to(tiles, {
-        scale: 1, opacity: 1,
-        duration: 0.7, ease: 'power2.out',
-        delay: 0.3, overwrite: true,
       });
     }
   }, [chromeRevealed, isHover]);
@@ -241,14 +293,20 @@ export default function Board() {
     if (!tiles?.length) return;
     scaleAnim.current?.kill();
     filterAnim.current?.kill();
+
     scaleAnim.current = gsap.to(tiles, {
       scale: 0, opacity: 0,
-      duration: 0.6, ease: 'power3.inOut', overwrite: true,
+      duration: CATEGORY_TRANSITION_DURATION,
+      ease: CATEGORY_EASE_OUT,
+      overwrite: true,
     });
+
     if (isHover) {
       filterAnim.current = gsap.to(tiles, {
         filter: BLUR_ON,
-        duration: 0.6, ease: 'power3.inOut', overwrite: true,
+        duration: CATEGORY_TRANSITION_DURATION,
+        ease: CATEGORY_EASE_BLUR,
+        overwrite: true,
       });
     }
   }, [transitioning, isHover]);
@@ -262,20 +320,20 @@ export default function Board() {
 
     if (isHover) {
       gsap.set(tiles, { scale: 0, opacity: 0, filter: BLUR_ON });
-      scaleAnim.current = gsap.to(tiles, {
-        scale: 1, opacity: 1,
-        duration: 1, ease: 'power3.out', overwrite: true,
-      });
-      filterAnim.current = gsap.to(tiles, {
-        filter: BLUR_OFF,
-        duration: 1, ease: 'expo.out', overwrite: true,
-        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-      });
     } else {
       gsap.set(tiles, { scale: 0, opacity: 0 });
-      scaleAnim.current = gsap.to(tiles, {
-        scale: 1, opacity: 1,
-        duration: 1, ease: 'power3.out', overwrite: true,
+    }
+
+    scaleAnim.current = gsap.to(tiles, {
+      scale: 1, opacity: 1,
+      duration: 1, ease: 'power3.out', overwrite: true,
+    });
+
+    if (isHover) {
+      filterAnim.current = gsap.to(tiles, {
+        filter: BLUR_OFF,
+        duration: 1, ease: TILE_BLUR_EASE, overwrite: true,
+        onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
       });
     }
   }, [nonce, isHover]);
@@ -286,40 +344,29 @@ export default function Board() {
     const allTiles = Array.from(inner.querySelectorAll('[data-tile-id]'));
 
     if (focusedId && !isClosing) {
-      const others = source
-        ? allTiles.filter((el) => el !== source)
-        : allTiles;
-      gsap.to(others, {
-        scale: 0, opacity: 0,
-        duration: 0.7, ease: 'power2.inOut', overwrite: true,
-      });
+      const others = source ? allTiles.filter((el) => el !== source) : allTiles;
+      gsap.to(others, { scale: 0, opacity: 0, duration: 0.7, ease: 'power2.inOut', overwrite: true });
       if (isHover) {
         filterAnim.current?.kill();
         filterAnim.current = gsap.to(others, {
-          filter: BLUR_ON,
-          duration: 0.7, ease: 'power3.inOut', overwrite: true,
+          filter: BLUR_ON, duration: 0.7, ease: 'power3.inOut', overwrite: true,
         });
       }
     } else if (focusedId && isClosing) {
-      const others = source
-        ? allTiles.filter((el) => el !== source)
-        : allTiles;
-      gsap.to(others, {
-        scale: 1, opacity: 1,
-        duration: 0.7, ease: 'power2.out', overwrite: true,
-      });
+      const others = source ? allTiles.filter((el) => el !== source) : allTiles;
+      gsap.to(others, { scale: 1, opacity: 1, duration: 0.7, ease: 'power2.out', overwrite: true });
       if (isHover) {
         filterAnim.current?.kill();
         filterAnim.current = gsap.to(others, {
-          filter: BLUR_OFF,
-          duration: 0.7, ease: 'expo.out', overwrite: true,
+          filter: BLUR_OFF, duration: 0.7, ease: TILE_BLUR_EASE, overwrite: true,
           onComplete: () => gsap.set(others, { clearProps: 'filter' }),
         });
       }
     }
   }, [focusedId, isClosing, source, isHover]);
 
-  // ── Video IntersectionObserver ────────────────────────────────────────────
+  // ── Video IntersectionObserver ─────────────────────────────────────────────
+
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
@@ -331,16 +378,7 @@ export default function Board() {
         for (const entry of entries) {
           const v = entry.target;
           if (entry.isIntersecting) {
-            if (!v.dataset.primed) {
-              v.dataset.primed = '1';
-              const prime = () => { try { v.currentTime = 0.001; } catch {} };
-              if (v.readyState >= 1) prime();
-              else {
-                v.addEventListener('loadedmetadata', prime, { once: true });
-                v.preload = 'metadata';
-                v.load();
-              }
-            }
+            primeVideo(v);
           } else if (!v.paused) {
             v.pause();
           }
@@ -348,11 +386,13 @@ export default function Board() {
       },
       { rootMargin: '200px' }
     );
+
     videos.forEach((v) => obs.observe(v));
     return () => obs.disconnect();
   }, [columns, nonce, isHover, repeatX, repeatY]);
 
-  // ── Pointer & Wheel events ────────────────────────────────────────────────
+  // ── Pointer & Wheel events ─────────────────────────────────────────────────
+
   useEffect(() => {
     const wrap  = wrapRef.current;
     const inner = innerRef.current;
@@ -369,12 +409,11 @@ export default function Board() {
 
     const squashTiles = () => {
       isDragging.current = true;
-      const tiles = inner.querySelectorAll('[data-tile-id]');
       scaleAnim.current?.kill();
-      scaleAnim.current = gsap.to(tiles, {
-        scale: DRAG_TILE_SCALE,
-        duration: 0.6, ease: 'expo.out', overwrite: 'auto',
-      });
+      scaleAnim.current = gsap.to(
+        inner.querySelectorAll('[data-tile-id]'),
+        { scale: DRAG_TILE_SCALE, duration: 0.6, ease: 'expo.out', overwrite: 'auto' }
+      );
     };
 
     const restoreTiles = (duration = 0.9) => {
@@ -386,10 +425,8 @@ export default function Board() {
       scaleAnim.current = gsap.to(others, {
         scale: 1, duration, ease: 'expo.out', overwrite: 'auto',
       });
-      if (hovered && !isDragging.current) {
-        gsap.to(hovered, {
-          scale: HOVER_SCALE, duration, ease: 'expo.out', overwrite: 'auto',
-        });
+      if (hovered) {
+        gsap.to(hovered, { scale: HOVER_SCALE, duration, ease: 'expo.out', overwrite: 'auto' });
       }
     };
 
@@ -399,13 +436,9 @@ export default function Board() {
       stopLerp();
       capturing  = true;
       hasDragged = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      originX = posRef.current.x;
-      originY = posRef.current.y;
-      lastT = e.timeStamp;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      startX = e.clientX;  startY = e.clientY;
+      originX = posRef.current.x; originY = posRef.current.y;
+      lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY;
       vx = vy = 0;
       startEl   = e.target;
       captureId = e.pointerId;
@@ -427,9 +460,7 @@ export default function Board() {
         const alpha = Math.min(1, dt / VELOCITY_WINDOW);
         vx = vx * (1 - alpha) + ((e.clientX - lastX) / dt) * 1000 * alpha;
         vy = vy * (1 - alpha) + ((e.clientY - lastY) / dt) * 1000 * alpha;
-        lastT = e.timeStamp;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY;
       }
       applyPositions();
     };
@@ -447,33 +478,31 @@ export default function Board() {
         const el = document.elementFromPoint(e.clientX, e.clientY)
           ?.closest('[data-tile-id]') ?? null;
         hoveredEl.current = el;
-        if (el && isHover) el.querySelector('video')?.play().catch(() => {});
+        if (el) playVideo(el);
       }
+
       restoreTiles(0.9);
 
       if (!hasDragged && startEl) {
         const tileEl = startEl.closest('[data-tile-id]');
-        if (tileEl?.dataset.tileId) {
-          openFocus(tileEl.dataset.tileId, tileEl);
-        }
+        if (tileEl?.dataset.tileId) openFocus(tileEl.dataset.tileId, tileEl);
       }
 
-      const cw     = colWidthRef.current;
-      const stride = cw + GAP;
+      const stride  = colWidthRef.current + GAP;
       const targetX = e.pointerType === 'mouse'
         ? Math.round((posRef.current.x + vx * INERTIA_FRICTION) / stride) * stride
         : posRef.current.x + vx * INERTIA_FRICTION;
       const targetY = posRef.current.y + vy * INERTIA_FRICTION;
 
+      stopLerp();
       inertiaRef.current = gsap.to(posRef.current, {
-        x: targetX,
-        y: targetY,
-        duration: INERTIA_DURATION,
-        ease: 'expo.out',
-        onUpdate: applyPositions,
+        x: targetX, y: targetY,
+        duration: INERTIA_DURATION, ease: 'expo.out',
+        onUpdate:  applyPositions,
         onComplete: () => setWillChange(false),
       });
       setWillChange(true);
+      startEl = null;
     };
 
     const onPointerOver = (e) => {
@@ -485,13 +514,13 @@ export default function Board() {
       hoveredEl.current = el;
 
       if (prev) {
-        prev.querySelector('video')?.pause();
+        pauseVideo(prev);
         if (!isDragging.current) {
           gsap.to(prev, { scale: 1, duration: 0.7, ease: 'expo.out', overwrite: 'auto' });
         }
       }
 
-      if (isHover) el.querySelector('video')?.play().catch(() => {});
+      playVideo(el);
 
       const id = el.dataset.tileId;
       if (id && !isDiscovered(id)) {
@@ -512,18 +541,17 @@ export default function Board() {
       const related = e.relatedTarget;
       if (related && el.contains(related)) return;
       hoveredEl.current = null;
-      el.querySelector('video')?.pause();
+      pauseVideo(el);
       if (!isDragging.current) {
         gsap.to(el, { scale: 1, duration: 0.7, ease: 'expo.out', overwrite: 'auto' });
       }
     };
 
     const onWheel = (e) => {
-      if (focusedId) return;
-      if (e.deltaX === 0 && e.deltaY === 0) return;
+      if (focusedId || (e.deltaX === 0 && e.deltaY === 0)) return;
       const factor = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
       const dx = (e.deltaX || 0) * factor * SCROLL_MULT;
-      const dy = e.deltaY * factor * SCROLL_MULT;
+      const dy = e.deltaY        * factor * SCROLL_MULT;
 
       if (!rafRef.current) {
         targetRef.current.x = posRef.current.x;
@@ -552,6 +580,7 @@ export default function Board() {
       wrap.removeEventListener('pointerout',    onPointerOut);
       wrap.removeEventListener('wheel',         onWheel);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) rafRef.current = 0;
       inertiaRef.current?.kill();
       scaleAnim.current?.kill();
       filterAnim.current?.kill();
@@ -562,10 +591,10 @@ export default function Board() {
     focusedId, isHover,
   ]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  const numCols   = columns.length;
-  const totalCols = repeatX * numCols;
+  // ── Render ─────────────────────────────────────────────────────────────────
 
+  const numCols    = columns.length;
+  const totalCols  = (repeatX ?? 2) * numCols;
   const mediaClass = isHover ? MEDIA_HOVER_CLASS : MEDIA_TOUCH_CLASS;
 
   return (
@@ -577,7 +606,6 @@ export default function Board() {
       <div
         ref={innerRef}
         className={`absolute left-1/2 top-1/2 flex items-center gap-4${focusedId ? ' [&_.video-badge]:opacity-0' : ''}`}
-        style={{ translate: 'none', rotate: 'none', scale: 'none', transform: 'translate(-50%, -50%) translate(188px, 0px)' }}
       >
         {Array.from({ length: totalCols }, (_, ci) => {
           const col = columns[ci % numCols];
@@ -591,7 +619,6 @@ export default function Board() {
                 col.map((tile) => {
                   const aspectClass = TILE_ASPECT_CLASSES[tile.size] ?? 'aspect-square';
                   const isFocused   = focusedId === tile.id;
-                  const discovered  = isDiscovered(tile.id);
                   const useVideo    = tile.media.kind === 'video' && (isHover || !tile.media.posterSrc);
                   const imgSrc      = tile.media.kind === 'video'
                     ? (tile.media.posterSrc ?? tile.media.src)
@@ -604,20 +631,34 @@ export default function Board() {
                     >
                       <div
                         data-tile-id={tile.id}
-                        className={`group absolute inset-0 overflow-hidden rounded-lg${discovered ? ' discovered' : ''}`}
-                        style={{ backgroundColor: tileColor(tile), translate: 'none', rotate: 'none', scale: 'none', opacity: 1, transform: 'translate(0px, 0px)' }}
+                        className="group absolute inset-0 overflow-hidden rounded-lg"
+                        style={{ backgroundColor: tileColor(tile) }}
                       >
+
                         {tile.media.kind === 'video' && (
                           <div
                             aria-hidden
                             className="video-badge pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-[1px] rounded-[4px] bg-white px-[4px] border [border-color:rgba(0,0,0,0.1)] py-[2px] group-hover:opacity-0"
-                            style={{ WebkitFontSmoothing: 'antialiased' }}
+                            style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                           >
-                            <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-                              <path d="M2.5 2.495C2.5 2.009 2.5 1.766 2.601 1.633C2.689 1.516 2.824 1.444 2.97 1.435C3.138 1.425 3.34 1.56 3.744 1.829L9.002 5.334C9.335 5.557 9.502 5.668 9.56 5.808C9.611 5.931 9.611 6.069 9.56 6.191C9.502 6.332 9.335 6.443 9.002 6.666L3.744 10.171C3.34 10.44 3.138 10.575 2.97 10.565C2.824 10.556 2.689 10.484 2.601 10.367C2.5 10.233 2.5 9.991 2.5 9.505V2.495Z" fill="#00000054" />
-                              <path d="M2.955 1.186C3.111 1.176 3.256 1.236 3.388 1.308C3.522 1.38 3.685 1.489 3.883 1.621L9.141 5.126C9.303 5.234 9.439 5.325 9.541 5.407C9.643 5.49 9.738 5.585 9.791 5.713C9.867 5.897 9.867 6.103 9.791 6.287C9.738 6.415 9.643 6.509 9.541 6.592C9.439 6.674 9.304 6.765 9.141 6.874L3.883 10.379C3.685 10.511 3.522 10.62 3.388 10.692C3.256 10.764 3.111 10.824 2.955 10.815C2.736 10.801 2.535 10.693 2.402 10.519C2.308 10.394 2.277 10.241 2.264 10.091C2.25 9.939 2.25 9.743 2.25 9.505V2.495C2.25 2.257 2.25 2.061 2.264 1.909C2.277 1.759 2.308 1.606 2.402 1.481C2.535 1.307 2.736 1.199 2.955 1.186Z" fill="none" stroke="#00000054" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <svg
+                              width="12" height="12" viewBox="0 0 12 12"
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="shrink-0"
+                            >
+                              <path
+                                d="M2.5 2.495C2.5 2.009 2.5 1.766 2.601 1.633C2.689 1.516 2.824 1.444 2.97 1.435C3.138 1.425 3.34 1.56 3.744 1.829L9.002 5.334C9.335 5.557 9.502 5.668 9.56 5.808C9.611 5.931 9.611 6.069 9.56 6.191C9.502 6.332 9.335 6.443 9.002 6.666L3.744 10.171C3.34 10.44 3.138 10.575 2.97 10.565C2.824 10.556 2.689 10.484 2.601 10.367C2.5 10.233 2.5 9.991 2.5 9.505V2.495Z"
+                                fill="#00000054"
+                              />
+                              <path
+                                d="M2.955 1.186C3.111 1.176 3.256 1.236 3.388 1.308C3.522 1.38 3.685 1.489 3.883 1.621L9.141 5.126C9.303 5.234 9.439 5.325 9.541 5.407C9.643 5.49 9.738 5.585 9.791 5.713C9.867 5.897 9.867 6.103 9.791 6.287C9.738 6.415 9.643 6.509 9.541 6.592C9.439 6.674 9.304 6.765 9.141 6.874L3.883 10.379C3.685 10.511 3.522 10.62 3.388 10.692C3.256 10.764 3.111 10.824 2.955 10.815C2.736 10.801 2.535 10.693 2.402 10.519C2.308 10.394 2.277 10.241 2.264 10.091C2.25 9.939 2.25 9.743 2.25 9.505V2.495C2.25 2.257 2.25 2.061 2.264 1.909C2.277 1.759 2.308 1.606 2.402 1.481C2.535 1.307 2.736 1.199 2.955 1.186Z"
+                                fill="none" stroke="#00000054" strokeWidth="0.5"
+                                strokeLinecap="round" strokeLinejoin="round"
+                              />
                             </svg>
-                            <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>video</span>
+                            <span style={{ color: '#000000A8', fontSize: 12, letterSpacing: '-0.02em', lineHeight: '120%' }}>
+                              video
+                            </span>
                           </div>
                         )}
 
