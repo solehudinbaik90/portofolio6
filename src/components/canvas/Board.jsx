@@ -45,7 +45,7 @@ function calcRepeatY(viewH, colH) {
 }
 
 export default function Board() {
-  const { columns, nonce, transitioning, chromeRevealed } = useTiles();
+  const { columns, nonce, transitioning, chromeRevealed, revealChrome } = useTiles();
   const { focusedId, source, isClosing, openFocus } = useFocus();
   const { markDiscovered, isDiscovered } = useDiscoveryActions();
   const isHover = useHoverDevice();
@@ -192,6 +192,10 @@ export default function Board() {
       gsap.set(innerRef.current, { xPercent: -50, yPercent: -50 });
     }
   }, []);
+
+    useEffect(() => {
+      revealChrome();
+    }, [revealChrome]);
 
   // ── Tile reveal/hide ────────────────
 
