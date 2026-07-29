@@ -6,6 +6,7 @@ import { ALL_TILES } from '../../data/tiles';
 import { TILE_ASPECT_CLASSES, TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
+// ── Constants ────────────────────────────────────────────────────────────────
 const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
@@ -16,12 +17,10 @@ const MOBILE_BREAKPOINT = 768;
 const MOBILE_OPACITY    = 0.001;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
+const MIN_SCALE         = 1;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
 
-function getTile(id) {
-  return ALL_TILES.find((t) => t.id === id) ?? null;
-}
-
+// ── Component ────────────────────────────────────────────────────────────────
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
   const isHover = useHoverDevice();
@@ -34,13 +33,15 @@ export default function FocusView() {
   const snapAnimRef   = useRef(null);
   const openTlRef     = useRef(null);
   const closeTlRef    = useRef(null);
-  const videoTimer    = useRef(0);
+  const videoTimerRef = useRef(0);
   const openDoneRef   = useRef(false);
   const isMobileRef   = useRef(false);
 
+  // ── Video playback helpers ─────────────────────────────────────────────────
   const playVideo = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
+
     const sourceVid = source?.querySelector('video');
     if (sourceVid && Number.isFinite(sourceVid.currentTime)) {
       try { v.currentTime = sourceVid.currentTime; } catch {}
@@ -52,34 +53,40 @@ export default function FocusView() {
     if (isHover) {
       playVideo();
     } else {
-      clearTimeout(videoTimer.current);
-      videoTimer.current = window.setTimeout(playVideo, VIDEO_DELAY_MS);
+      videoTimerRef.current = window.setTimeout(playVideo, VIDEO_DELAY_MS);
     }
   }, [isHover, playVideo]);
 
-  // ── OPEN ──────────────────────────────────────────────────────────────────
+  const cancelPlay = useCallback(() => {
+    window.clearTimeout(videoTimerRef.current);
+  }, []);
+
+  // ── OPEN animation ─────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (!focusedId || !source) return;
+
     const inner = innerRef.current;
     if (!inner) return;
 
     openTlRef.current?.kill();
     closeTlRef.current?.kill();
+    cancelPlay();
     openDoneRef.current = false;
-    scaleRef.current = 1;
+    scaleRef.current    = 1;
 
     const mobile = window.innerWidth < MOBILE_BREAKPOINT;
     isMobileRef.current = mobile;
 
     if (mobile) {
+
       gsap.killTweensOf(source);
       gsap.set(source, { x: 0, y: 0, scale: 1 });
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
-      const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
-      const dy = dstRect.top  + dstRect.height / 2 - (srcRect.top  + srcRect.height / 2);
-      const sx = dstRect.width / srcRect.width;
+      const dx      = dstRect.left + dstRect.width  / 2 - (srcRect.left + srcRect.width  / 2);
+      const dy      = dstRect.top  + dstRect.height / 2 - (srcRect.top  + srcRect.height / 2);
+      const sx      = dstRect.width / srcRect.width;
 
       openTlRef.current = gsap.to(source, {
         x: dx, y: dy, scale: sx,
@@ -96,14 +103,14 @@ export default function FocusView() {
         },
       });
     } else {
+
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
-      const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
-      const dy = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
-      const sx = srcRect.width / dstRect.width;
-      const prevVis = source.style.visibility;
-      source.style.visibility = 'hidden';
+      const dx      = srcRect.left + srcRect.width  / 2 - (dstRect.left + dstRect.width  / 2);
+      const dy      = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
+      const sx      = srcRect.width / dstRect.width;
 
+      source.style.visibility = 'hidden';
       if (isHover) playVideo();
 
       openTlRef.current = gsap.fromTo(
@@ -123,33 +130,33 @@ export default function FocusView() {
           },
         }
       );
-
-      openTlRef.current._prevVis = prevVis;
     }
 
     return () => {
       openTlRef.current?.kill();
-      clearTimeout(videoTimer.current);
+      cancelPlay();
     };
-
   }, [focusedId, source]);
 
-  // ── CLOSE ─────────────────────────────────────────────────────────────────
+  // ── CLOSE animation ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isClosing) return;
-    clearTimeout(videoTimer.current);
 
+    cancelPlay();
     const inner = innerRef.current;
-    if (!inner || !source) { finishClose(); return; }
+
+    if (!inner || !source) {
+      finishClose();
+      return;
+    }
 
     openTlRef.current?.kill();
     closeTlRef.current?.kill();
 
-    const mobile = isMobileRef.current;
-
-    if (mobile) {
+    if (isMobileRef.current) {
 
       if (!openDoneRef.current) {
+
         gsap.killTweensOf(source);
         gsap.set(source, { x: 0, y: 0, scale: 1 });
         source.style.visibility = '';
@@ -163,24 +170,26 @@ export default function FocusView() {
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
-
-      const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
-      const dy = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
-      const sx = srcRect.width / (dstRect.width / currentScale);
+      const dx      = srcRect.left + srcRect.width  / 2 - (dstRect.left + dstRect.width  / 2);
+      const dy      = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
+      const sx      = srcRect.width / (dstRect.width / currentScale);
 
       closeTlRef.current = gsap.to(inner, {
         x: dx, y: dy, scale: sx,
-        duration: CLOSE_DUR, ease: CLOSE_EASE,
+        duration: CLOSE_DUR,
+        ease: CLOSE_EASE,
         overwrite: 'auto',
         onComplete: finishClose,
       });
     } else {
+
       gsap.killTweensOf(source);
       gsap.set(source, { scale: 1 });
 
       closeTlRef.current = gsap.to(source, {
         x: 0, y: 0, scale: 1,
-        duration: CLOSE_DUR, ease: CLOSE_EASE,
+        duration: CLOSE_DUR,
+        ease: CLOSE_EASE,
         overwrite: 'auto',
         onComplete: finishClose,
       });
@@ -197,7 +206,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // ── Wheel zoom (desktop hover only) ───────────────────────────────────────
+  // ── Wheel zoom (hover/desktop only) ───────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -208,22 +217,24 @@ export default function FocusView() {
       if (!openDoneRef.current) return;
       e.preventDefault();
 
-      const dims   = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH   = (window.innerHeight - 256) / dims.h;
-      const maxW   = (window.innerWidth - SIDE_PAD) / dims.w;
+      const dims     = scaleRef._dims ?? inner.getBoundingClientRect();
+      const maxH     = (window.innerHeight - 256) / dims.h;
+      const maxW     = (window.innerWidth - SIDE_PAD) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
-      const next   = Math.min(maxScale, Math.max(1, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
+      const next     = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
       if (next === scaleRef.current) {
-        const atMax = e.deltaY < 0 && next >= maxScale - 0.001;
-        const atMin = e.deltaY > 0 && next <= 1.001;
-        if ((atMax || atMin) && !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
+        const atMax    = e.deltaY < 0 && next >= maxScale - 0.001;
+        const atMin    = e.deltaY > 0 && next <= MIN_SCALE + 0.001;
+        const notBusy  = !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive();
+
+        if ((atMax || atMin) && notBusy) {
           snapAnimRef.current = gsap.timeline()
-            .to(inner, { x: -16, duration: 0.06, ease: 'power2.out' })
-            .to(inner, { x: 16,  duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x: -8,  duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x: 8,   duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x: 0,   duration: 0.1,  ease: 'power2.out' });
+            .to(inner, { x: -16, duration: 0.06, ease: 'power2.out'    })
+            .to(inner, { x:  16, duration: 0.08, ease: 'power2.inOut'  })
+            .to(inner, { x:  -8, duration: 0.08, ease: 'power2.inOut'  })
+            .to(inner, { x:   8, duration: 0.08, ease: 'power2.inOut'  })
+            .to(inner, { x:   0, duration: 0.10, ease: 'power2.out'    });
         }
         return;
       }
@@ -242,15 +253,19 @@ export default function FocusView() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [focusedId, isHover]);
 
+  // ── Early exit if no focused tile ─────────────────────────────────────────
   if (!focusedId) return null;
+
   const tile = getTile(focusedId);
   if (!tile) return null;
 
-  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size];
+  // ── Dimensions ────────────────────────────────────────────────────────────
+  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size];
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  const width       = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       ref={containerRef}
@@ -259,9 +274,7 @@ export default function FocusView() {
       aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{
-        pointerEvents: isMobileRef.current ? 'none' : 'auto',
-      }}
+      style={isMobileRef.current ? { pointerEvents: 'none' } : undefined}
     >
       <div
         ref={innerRef}
@@ -281,6 +294,7 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
+                decoding={isMobileRef.current ? 'sync' : undefined}
                 className="pointer-events-none absolute inset-0 size-full object-cover"
               />
             )}
@@ -300,6 +314,7 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
+            decoding={isMobileRef.current ? 'sync' : undefined}
             className="size-full object-cover"
           />
         )}
@@ -307,5 +322,3 @@ export default function FocusView() {
     </div>
   );
 }
-
-const MIN_SCALE = 1;
