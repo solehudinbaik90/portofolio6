@@ -577,7 +577,7 @@ export default function Board() {
       <div
         ref={innerRef}
         className={`absolute left-1/2 top-1/2 flex items-center gap-4${focusedId ? ' [&_.video-badge]:opacity-0' : ''}`}
-        style={{ transform: 'translate(-50%, -50%)' }}
+        style={{ translate: 'none', rotate: 'none', scale: 'none', transform: 'translate(-50%, -50%) translate(188px, 0px)' }}
       >
         {Array.from({ length: totalCols }, (_, ci) => {
           const col = columns[ci % numCols];
@@ -604,14 +604,14 @@ export default function Board() {
                     >
                       <div
                         data-tile-id={tile.id}
-                        style={{ backgroundColor: tileColor(tile) }}
                         className={`group absolute inset-0 overflow-hidden rounded-lg${discovered ? ' discovered' : ''}`}
+                        style={{ backgroundColor: tileColor(tile), translate: 'none', rotate: 'none', scale: 'none', opacity: 1, transform: 'translate(0px, 0px)' }}
                       >
                         {tile.media.kind === 'video' && (
                           <div
                             aria-hidden
                             className="video-badge pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-[1px] rounded-[4px] bg-white px-[4px] border [border-color:rgba(0,0,0,0.1)] py-[2px] group-hover:opacity-0"
-                            style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
+                            style={{ WebkitFontSmoothing: 'antialiased' }}
                           >
                             <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
                               <path d="M2.5 2.495C2.5 2.009 2.5 1.766 2.601 1.633C2.689 1.516 2.824 1.444 2.97 1.435C3.138 1.425 3.34 1.56 3.744 1.829L9.002 5.334C9.335 5.557 9.502 5.668 9.56 5.808C9.611 5.931 9.611 6.069 9.56 6.191C9.502 6.332 9.335 6.443 9.002 6.666L3.744 10.171C3.34 10.44 3.138 10.575 2.97 10.565C2.824 10.556 2.689 10.484 2.601 10.367C2.5 10.233 2.5 9.991 2.5 9.505V2.495Z" fill="#00000054" />
