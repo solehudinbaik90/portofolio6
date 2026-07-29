@@ -7,7 +7,7 @@ export default function Tile({ tile, isFocused, isDiscovered }) {
   const aspectClass = TILE_ASPECT_CLASSES[tile.size] ?? 'aspect-square';
 
   return (
-    <div className={`${aspectClass} relative shrink-0${isFocused ? '' : ' [content-visibility:auto]'}`}>
+    <div className={`${aspectClass} relative shrink-0`}>
       <div
         data-tile-id={tile.id}
         className={`group absolute inset-0 overflow-hidden rounded-lg${isDiscovered ? ' discovered' : ''}`}
