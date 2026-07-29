@@ -11,7 +11,7 @@ export default function Tile({ tile, isFocused, isDiscovered }) {
       <div
         data-tile-id={tile.id}
         className={`group absolute inset-0 overflow-hidden rounded-lg${isDiscovered ? ' discovered' : ''}`}
-        style={{ backgroundColor: '#f1f1f1' }}
+        style={{ backgroundColor: '#f1f1f1', translate: 'none', rotate: 'none', scale: 'none', opacity: 1, transform: 'translate(0px, 0px)'}}
       >
         <TileMedia ref={mediaRef} tile={tile} isFocused={isFocused} />
       </div>
