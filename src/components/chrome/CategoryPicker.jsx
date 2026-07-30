@@ -6,10 +6,10 @@ import { useFocus } from '../../contexts/FocusContext';
 import { track } from '@vercel/analytics';
 
 const CATEGORIES = [
-  { category: 'everything', label: 'All',     icon: '/media/icons/ALL.svg'     },
-  { category: 'product',    label: 'Product', icon: '/media/icons/PRODUCT.svg' },
-  { category: 'brand',      label: 'Brand',   icon: '/media/icons/BRAND.svg'   },
-  { category: 'web',        label: 'Web',     icon: '/media/icons/WEB.svg'     },
+  { category: 'everything', label: 'All', icon: '/media/icons/ALL.svg' },
+  { category: 'product', label: 'Product', icon: '/media/icons/PRODUCT.svg' },
+  { category: 'brand', label: 'Brand', icon: '/media/icons/BRAND.svg' },
+  { category: 'web', label: 'Web', icon: '/media/icons/WEB.svg' },
 ];
 
 export default function CategoryPicker() {
@@ -20,23 +20,22 @@ export default function CategoryPicker() {
   const focusActive = focusedId !== null && !isClosing;
   const isVisible =
     !focusActive &&
-    !(popup === 'info' || popup === 'contact' || popup === 'complete');
+    popup !== 'info' &&
+    popup !== 'contact' &&
+    popup !== 'complete';
 
   const [activeIdx, setActiveIdx] = useState(() => {
     const i = CATEGORIES.findIndex((c) => c.category === category);
     return i === -1 ? 0 : i;
   });
 
-
   useEffect(() => {
     const i = CATEGORIES.findIndex((c) => c.category === category);
     if (i !== -1) setActiveIdx(i);
   }, [category]);
 
-
   const [displayIdx, setDisplayIdx] = useState(activeIdx);
   const wasTransitioning = useRef(false);
-
   useLayoutEffect(() => {
     if (wasTransitioning.current && !transitioning) {
       setDisplayIdx(activeIdx);
@@ -44,11 +43,12 @@ export default function CategoryPicker() {
     wasTransitioning.current = transitioning;
   }, [transitioning, activeIdx]);
 
-
+  // ── Refs animasi ──────────────────────────────────────────────────────────
   const pillRef = useRef(null);
   const labelRef = useRef(null);
   const iconGroupRef = useRef(null);
   const pillInit = useRef(false);
+  const labelInit = useRef(false);
 
   useLayoutEffect(() => {
     const el = pillRef.current;
@@ -59,22 +59,20 @@ export default function CategoryPicker() {
       return;
     }
     gsap.to(el, {
-      scale:    +!!isVisible,
+      scale: +!!isVisible,
       duration: isVisible ? 0.4 : 0.3,
-      ease:     isVisible ? 'power2.out' : 'power2.in',
+      ease: isVisible ? 'power2.out' : 'power2.in',
     });
     gsap.to(el, {
-      opacity:  +!!isVisible,
+      opacity: +!!isVisible,
       duration: isVisible ? 0.3 : 0.2,
-      ease:     isVisible ? 'power2.out' : 'power2.in',
+      ease: isVisible ? 'power2.out' : 'power2.in',
     });
   }, [isVisible]);
 
-
-  const labelInit = useRef(false);
   useLayoutEffect(() => {
     const labelEl = labelRef.current;
-    const iconEl  = iconGroupRef.current;
+    const iconEl = iconGroupRef.current;
     if (!labelEl || !iconEl) return;
 
     if (!labelInit.current) {
