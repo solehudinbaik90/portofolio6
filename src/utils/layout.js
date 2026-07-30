@@ -1,4 +1,3 @@
-
 export const TILE_ASPECT_RATIOS_HW = {
   ws: 9 / 16,
   ls: 3 / 4,
@@ -24,17 +23,17 @@ export const TILE_ASPECT_CLASSES = {
   lg: 'aspect-[4/5]',
 };
 
-const GAP = 16;
+export const TILE_GAP = 16;
 
+export const NUM_COLS = 7;
 
 export function tileColumnHeight(tiles, colWidth) {
   if (!tiles || tiles.length === 0) return 0;
   return (
-    tiles.reduce((sum, t) => sum + TILE_ASPECT_RATIOS_HW[t.size] * colWidth, 0) +
-    GAP * tiles.length
+    tiles.reduce((sum, t) => sum + TILE_ASPECT_RATIOS_HW[t.size ?? 'sq'] * colWidth, 0) +
+    TILE_GAP * tiles.length
   );
 }
-
 
 export function distributeToColumns(tiles, numCols) {
   const cols = Array.from({ length: numCols }, () => []);
@@ -48,22 +47,41 @@ export function distributeToColumns(tiles, numCols) {
       if (heights[i] < heights[shortest]) shortest = i;
     }
     cols[shortest].push(tile);
-    heights[shortest] += TILE_ASPECT_RATIOS_HW[tile.size];
+    heights[shortest] += TILE_ASPECT_RATIOS_HW[tile.size ?? 'sq'];
   }
 
   for (let i = 0; i < numCols; i++) {
     if (cols[i].length > 0) continue;
     let longest = 0;
     for (let j = 1; j < numCols; j++) {
-      if (heights[j] > heights[longest]) longest = j;
+      if (cols[j].length > cols[longest].length) longest = j;
     }
     const moved = cols[longest].pop();
-    if (moved) {
-      cols[i].push(moved);
-      heights[longest] -= TILE_ASPECT_RATIOS_HW[moved.size];
-      heights[i] += TILE_ASPECT_RATIOS_HW[moved.size];
-    }
+    if (moved) cols[i].push(moved);
   }
 
   return cols;
+}
+
+
+export function getColWidth() {
+  if (typeof window === 'undefined') return 216;
+  if (window.innerWidth >= 1920) return 480;
+  if (window.innerWidth >= 768) return 360;
+  return 216;
+}
+
+
+export function calcRepeatX(viewW, numCols, colWidth) {
+  const totalW = numCols * (colWidth + TILE_GAP);
+  return Math.max(2, Math.ceil(viewW / totalW) + 1);
+}
+
+export function calcRepeatY(viewH, colHeight) {
+  if (colHeight <= 0) return 2;
+  return Math.max(2, Math.ceil(viewH / colHeight) + 1);
+}
+
+export function wrapMod(n, total) {
+  return ((n % total) + total) % total;
 }
