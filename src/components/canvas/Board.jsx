@@ -18,7 +18,7 @@ const LERP_FACTOR = 0.15;
 const SCROLL_MULT = 1.0;
 const HOVER_SCALE = 1.0125;
 const DRAG_TILE_SCALE = 0.9;
-const BLUR_ON = 'blur(56px)';
+const BLUR_ON = 'blur(0px)';
 const BLUR_OFF = 'blur(0px)';
 
 const CAT_TRANSITION_DUR = 0.6;
