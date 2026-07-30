@@ -1,36 +1,42 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const FocusContext = createContext(null);
 
 export function FocusProvider({ children }) {
-  const [focusedId, setFocusedIdRaw] = useState(null);
+  const [focusedId, setFocusedIdState] = useState(null);
   const [source, setSource] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
 
+  const prevIdRef = useRef(null);
+
   const setFocusedId = useCallback((id) => {
     if (id === null) {
-      setFocusedIdRaw((prev) => { if (prev !== null) setIsClosing(true); return prev; });
+      setIsClosing(true);
     } else {
       setSource(null);
       setIsClosing(false);
-      setFocusedIdRaw(id);
+      setFocusedIdState(id);
+      prevIdRef.current = id;
     }
   }, []);
 
   const openFocus = useCallback((id, el) => {
     setSource(el);
     setIsClosing(false);
-    setFocusedIdRaw(id);
+    setFocusedIdState(id);
+    prevIdRef.current = id;
   }, []);
 
   const finishClose = useCallback(() => {
-    setFocusedIdRaw(null);
+    setFocusedIdState(null);
     setSource(null);
     setIsClosing(false);
   }, []);
 
   return (
-    <FocusContext.Provider value={{ focusedId, source, isClosing, setFocusedId, openFocus, finishClose }}>
+    <FocusContext.Provider
+      value={{ focusedId, source, isClosing, setFocusedId, openFocus, finishClose }}
+    >
       {children}
     </FocusContext.Provider>
   );
