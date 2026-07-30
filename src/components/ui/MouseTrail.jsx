@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
 
 const CURSOR_SIZE = 16;
-const TRAIL_WINDOW = 100;
+const TRAIL_WINDOW = 100; // ms
 const LINE_WIDTH = 4;
 const TRAIL_COLOR = '253, 1, 27';
 
@@ -10,14 +10,16 @@ export default function MouseTrail() {
   const isHover = useHoverDevice();
   const canvasRef = useRef(null);
   const dotRef = useRef(null);
-  const trail = useRef([]);
+  const trailRef = useRef([]);
 
   useEffect(() => {
     if (!isHover) return;
     const canvas = canvasRef.current;
     const dot = dotRef.current;
     if (!canvas || !dot) return;
+
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -30,7 +32,8 @@ export default function MouseTrail() {
     resize();
     window.addEventListener('resize', resize);
 
-    let cx = -100, cy = -100, visible = false;
+    let cx = -100, cy = -100;
+    let visible = false;
 
     const onMove = (e) => {
       cx = e.clientX;
@@ -39,7 +42,7 @@ export default function MouseTrail() {
         visible = true;
         dot.style.opacity = '1';
       }
-      trail.current.push({ x: cx, y: cy, t: performance.now() });
+      trailRef.current.push({ x: cx, y: cy, t: performance.now() });
     };
 
     const onLeave = () => {
@@ -53,14 +56,16 @@ export default function MouseTrail() {
     let raf = 0;
     const draw = () => {
       const now = performance.now();
-      trail.current = trail.current.filter((p) => now - p.t <= TRAIL_WINDOW);
+      trailRef.current = trailRef.current.filter((p) => now - p.t <= TRAIL_WINDOW);
+
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.lineWidth = LINE_WIDTH;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      for (let i = 1; i < trail.current.length; i++) {
-        const prev = trail.current[i - 1];
-        const curr = trail.current[i];
+
+      for (let i = 1; i < trailRef.current.length; i++) {
+        const prev = trailRef.current[i - 1];
+        const curr = trailRef.current[i];
         const age = now - curr.t;
         ctx.strokeStyle = `rgba(${TRAIL_COLOR}, ${Math.max(0, 1 - age / TRAIL_WINDOW)})`;
         ctx.beginPath();
@@ -68,6 +73,7 @@ export default function MouseTrail() {
         ctx.lineTo(curr.x, curr.y);
         ctx.stroke();
       }
+
       dot.style.transform = `translate3d(${cx - CURSOR_SIZE / 2}px, ${cy - CURSOR_SIZE / 2}px, 0)`;
       raf = requestAnimationFrame(draw);
     };
