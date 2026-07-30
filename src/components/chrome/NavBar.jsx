@@ -5,40 +5,31 @@ import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { track } from '@vercel/analytics';
-import {
-  MAGIC_8_YES,
-  MAGIC_8_MAYBE,
-  MAGIC_8_NO,
-  pickRandom,
-  HINT_HOVER,
-  HINT_TOUCH,
-} from '../../utils/strings';
-
+import { MAGIC_8_YES, MAGIC_8_MAYBE, MAGIC_8_NO, pickRandom, HINT_HOVER, HINT_TOUCH } from '../../utils/strings';
 
 const ITEM_OFFSET = 72;
-const MAGIC_8_DISMISS_DURATION = 2;
-
+const MAGIC_8_DISMISS = 2;
 
 function computeOffsets(visibilities) {
-  const total = visibilities.length;
-  const half = (total - 1) / 2;
-  const activeIndices = visibilities
+  const activeIdx = visibilities
     .map((v, i) => (v ? i : -1))
     .filter((i) => i >= 0);
+  if (activeIdx.length === 0) return visibilities.map(() => 0);
 
-  if (activeIndices.length === 0) return visibilities.map(() => 0);
+  const total = visibilities.length;
+  const half = (total - 1) / 2;
+  const activeHalf = (activeIdx.length - 1) / 2;
 
-  const activeHalf = (activeIndices.length - 1) / 2;
   return visibilities.map((_, i) => {
-    const activePos = activeIndices.indexOf(i);
-    if (activePos === -1) return 0;
-    return (activePos - activeHalf) * ITEM_OFFSET - (i - half) * ITEM_OFFSET;
+    const ai = activeIdx.indexOf(i);
+    if (ai === -1) return 0;
+    return (ai - activeHalf) * ITEM_OFFSET - (i - half) * ITEM_OFFSET;
   });
 }
 
-
-function shakeX(tl, target) {
-  return tl
+function shakeX(target) {
+  return gsap
+    .timeline({ onComplete: () => gsap.set(target, { clearProps: 'x' }) })
     .set(target, { x: 0 })
     .to(target, { x: -16, duration: 0.06, ease: 'power2.out' })
     .to(target, { x: 16, duration: 0.08, ease: 'power2.inOut' })
@@ -47,9 +38,9 @@ function shakeX(tl, target) {
     .to(target, { x: 0, duration: 0.1, ease: 'power2.out' });
 }
 
-
-function shakeY(tl, target) {
-  return tl
+function shakeY(target) {
+  return gsap
+    .timeline({ onComplete: () => gsap.set(target, { clearProps: 'y' }) })
     .set(target, { y: 0 })
     .to(target, { y: -16, duration: 0.06, ease: 'power2.out' })
     .to(target, { y: 16, duration: 0.08, ease: 'power2.inOut' })
@@ -58,9 +49,9 @@ function shakeY(tl, target) {
     .to(target, { y: 0, duration: 0.1, ease: 'power2.out' });
 }
 
-
-function shakeRotate(tl, target) {
-  return tl
+function shakeRotate(target) {
+  return gsap
+    .timeline({ onComplete: () => gsap.set(target, { clearProps: 'rotation' }) })
     .set(target, { rotation: 0 })
     .to(target, { rotation: -30, duration: 0.06, ease: 'power2.out' })
     .to(target, { rotation: 30, duration: 0.08, ease: 'power2.inOut' })
@@ -80,45 +71,40 @@ export default function NavBar() {
   const contactOpen = popup === 'contact';
   const completeOpen = popup === 'complete';
   const projectOpen = popup === 'project';
-
-
-  const infoVisible    = !focusActive && !contactOpen && !completeOpen;
-  const homeVisible    = !contactOpen && !completeOpen;
-  const contactVisible = !infoOpen && !completeOpen;
-
   const isAtHome = !focusActive && popup === null;
 
-  const infoRef    = useRef(null);
-  const homeRef    = useRef(null);
+  const infoVisible = !focusActive && !contactOpen && !completeOpen;
+  const homeVisible = !contactOpen && !completeOpen;
+  const contactVisible = !infoOpen && !completeOpen;
+
+  const infoRef = useRef(null);
+  const homeRef = useRef(null);
   const contactRef = useRef(null);
   const logoBtnRef = useRef(null);
+  const hintRef = useRef(null);
+  const magic8Ref = useRef(null);
+  const magic8TlRef = useRef(null);
+  const hintDismissed = useRef(false);
+  const navInit = useRef(false);
+  const hintInit = useRef(false);
 
-  const hintRef        = useRef(null);
-  const hintInit       = useRef(false);
-  const hintDismissed  = useRef(false);
-
+  const [magic8Text, setMagic8Text] = useState('');
   const hint = isHover ? HINT_HOVER : HINT_TOUCH;
 
-  const magic8Ref     = useRef(null);
-  const magic8TlRef   = useRef(null);
-  const [magic8Text, setMagic8Text] = useState('');
-
-  const navInit = useRef(false);
-
-  // ── Animasi visibilitas + posisi x setiap item ────────────────────────────
+  // ── Animasi visibility + x offset ─────────────────────────────────────────
   useLayoutEffect(() => {
-    const refs     = [infoRef.current, homeRef.current, contactRef.current];
+    const refs = [infoRef.current, homeRef.current, contactRef.current];
     const visibles = [infoVisible, homeVisible, contactVisible];
-    const offsets  = computeOffsets(visibles);
+    const offsets = computeOffsets(visibles);
 
     if (!navInit.current) {
       navInit.current = true;
       refs.forEach((el, i) => {
         if (!el) return;
         gsap.set(el, {
-          scale:   +visibles[i],
+          scale: +visibles[i],
           opacity: +visibles[i],
-          x:       offsets[i],
+          x: offsets[i],
         });
       });
       return;
@@ -128,35 +114,37 @@ export default function NavBar() {
       if (!el) return;
       const v = visibles[i];
       gsap.to(el, {
-        scale:    +v,
+        scale: +v,
         duration: v ? 0.4 : 0.3,
-        ease:     v ? 'power2.out' : 'power2.in',
+        ease: v ? 'power2.out' : 'power2.in',
       });
       gsap.to(el, {
-        opacity:  +v,
+        opacity: +v,
         duration: v ? 0.3 : 0.2,
-        ease:     v ? 'power2.out' : 'power2.in',
+        ease: v ? 'power2.out' : 'power2.in',
       });
       gsap.to(el, {
-        x:        offsets[i],
+        x: offsets[i],
         duration: 0.4,
-        ease:     'power2.inOut',
+        ease: 'power2.inOut',
       });
     });
   }, [infoVisible, homeVisible, contactVisible]);
 
+  // ── Hint "Hover/Drag to explore" ─────────────────────────────────────────
   useLayoutEffect(() => {
+    if (hintRef.current) gsap.set(hintRef.current, { scale: 0, opacity: 0 });
+  }, []);
+
+  useEffect(() => {
     const el = hintRef.current;
-    if (!el || !chromeRevealed) return;
+    if (!el || !chromeRevealed || hintDismissed.current) return;
 
     if (!hintInit.current) {
       hintInit.current = true;
-      gsap.set(el, { scale: 0, opacity: 0 });
     }
 
-    if (!hintDismissed.current) {
-      gsap.to(el, { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' });
-    }
+    gsap.to(el, { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' });
 
     const dismiss = () => {
       if (hintDismissed.current) return;
@@ -171,12 +159,9 @@ export default function NavBar() {
 
   // ── Magic 8-ball tooltip init ─────────────────────────────────────────────
   useLayoutEffect(() => {
-    if (magic8Ref.current) {
-      gsap.set(magic8Ref.current, { scale: 0, opacity: 0 });
-    }
+    if (magic8Ref.current) gsap.set(magic8Ref.current, { scale: 0, opacity: 0 });
   }, []);
 
-  // ── Tampilkan magic 8-ball response ──────────────────────────────────────
   const showMagic8 = useCallback((text) => {
     setMagic8Text(text);
     const el = magic8Ref.current;
@@ -186,20 +171,14 @@ export default function NavBar() {
       .timeline()
       .set(el, { scale: 0, opacity: 0 })
       .to(el, { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' })
-      .to(el, { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' },
-        `+=${MAGIC_8_DISMISS_DURATION}`
-      );
+      .to(el, { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' }, `+=${MAGIC_8_DISMISS}`);
   }, []);
 
-  // ── Handler tombol logo ───────────────────────────────────────────────────
+  // ── Home button click ─────────────────────────────────────────────────────
   const handleHome = useCallback(() => {
     if (isAtHome) {
-      setFocusedId(null);
-      setPopup(null);
-      return;
-  }
       const outcomes = ['yes', 'maybe', 'no'];
-      const outcome  = outcomes[Math.floor(Math.random() * outcomes.length)];
+      const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
       const pool =
         outcome === 'yes' ? MAGIC_8_YES
         : outcome === 'maybe' ? MAGIC_8_MAYBE
@@ -208,22 +187,16 @@ export default function NavBar() {
 
       const btn = logoBtnRef.current;
       if (btn) {
-        const tl = gsap.timeline({
-          onComplete: () => gsap.set(btn, { clearProps: 'transform' }),
-        });
-        if (outcome === 'no')    shakeX(tl, btn);
-        else if (outcome === 'yes') shakeY(tl, btn);
-        else                        shakeRotate(tl, btn);
+        if (outcome === 'no') shakeX(btn);
+        else if (outcome === 'yes') shakeY(btn);
+        else shakeRotate(btn);
       }
-
       showMagic8(response);
+      return;
+    }
 
-    if (focusActive) {
-      setFocusedId(null);
-    }
-    if (projectOpen) {
-      setPopup(null);
-    }
+    if (focusActive) setFocusedId(null);
+    if (projectOpen) setPopup(null);
   }, [isAtHome, focusActive, projectOpen, setFocusedId, setPopup, showMagic8]);
 
   return (
