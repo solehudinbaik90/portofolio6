@@ -1,12 +1,24 @@
-function detectImageSize(src) {
+const _imgCache = [];
+
+{Promise<{width: number, height: number} | null>}
+
+function detectImageDims(src) {
   const img = new Image();
   img.decoding = 'sync';
   img.src = src;
-  return img.decode().then(() => ({ width: img.naturalWidth, height: img.naturalHeight })).catch(() => null);
+  return img
+    .decode()
+    .then(() => {
+      _imgCache.push(img);
+      return { width: img.naturalWidth, height: img.naturalHeight };
+    })
+    .catch(() => null);
 }
 
-function detectVideoSize(media) {
-  if (media.posterSrc) return detectImageSize(media.posterSrc);
+{Promise<{width: number, height: number} | null>}
+
+function detectVideoDims(media) {
+  if (media.posterSrc) return detectImageDims(media.posterSrc);
   return new Promise((resolve) => {
     const v = document.createElement('video');
     v.preload = 'metadata';
@@ -17,31 +29,58 @@ function detectVideoSize(media) {
   });
 }
 
-const SIZE_THRESHOLDS = [
-  [0.656, 'ws'], [0.875, 'ls'], [1.125, 'sq'], [1.292, 'lg'],
+const SIZE_MAP = [
+  [0.656, 'ws'],
+  [0.875, 'ls'],
+  [1.125, 'sq'],
+  [1.292, 'lg'],
 ];
 
-function aspectToSize(width, height) {
+export function dimsToSize(width, height) {
+  if (!width || !height) return 'sq';
   const ratio = height / width;
-  for (const [threshold, size] of SIZE_THRESHOLDS) {
+  for (const [threshold, size] of SIZE_MAP) {
     if (ratio < threshold) return size;
   }
   return 'md';
 }
 
+{Promise<string>}
+
 export async function detectSize(media) {
-  const dims = media.kind === 'video' ? await detectVideoSize(media) : await detectImageSize(media.src);
-  return dims ? aspectToSize(dims.width, dims.height) : 'sq';
+  const dims =
+    media.kind === 'video'
+      ? await detectVideoDims(media)
+      : await detectImageDims(media.src);
+  return dims ? dimsToSize(dims.width, dims.height) : 'sq';
 }
 
 export function primeVideo(el) {
   if (el.dataset.primed) return;
   el.dataset.primed = '1';
-  const load = () => { try { el.currentTime = 0.001; } catch {} };
-  if (el.readyState >= 1) load();
-  else {
+  const load = () => {
+    try { el.currentTime = 0.001; } catch {}
+  };
+  if (el.readyState >= 1) {
+    load();
+  } else {
     el.addEventListener('loadedmetadata', load, { once: true });
     el.preload = 'metadata';
     el.load();
+  }
+}
+
+
+export function playTileVideo(tileEl) {
+  const v = tileEl?.querySelector('video');
+  if (v && v.paused) v.play().catch(() => {});
+}
+
+
+export function pauseTileVideo(tileEl) {
+  const v = tileEl?.querySelector('video');
+  if (v && !v.paused) {
+    v.pause();
+    v.currentTime = 0;
   }
 }
