@@ -9,24 +9,20 @@ function getTile(id) {
   return ALL_TILES.find((t) => t.id === id) ?? null;
 }
 
-
-const ANIM_IN_SCALE  = { duration: 0.6, ease: 'power2.out' };
-const ANIM_OUT_SCALE = { duration: 0.6, ease: 'power2.out' };
-const ANIM_IN_FADE   = { duration: 0.3, ease: 'power2.out' };
-const ANIM_OUT_FADE  = { duration: 0.3, ease: 'power2.out' };
-const ANIM_BTN_IN    = { duration: 0.4, ease: 'power2.out' };
-const ANIM_BTN_OUT   = { duration: 0.3, ease: 'power2.in' };
-const ANIM_BTN_FADE_IN  = { duration: 0.3, ease: 'power2.out' };
-const ANIM_BTN_FADE_OUT = { duration: 0.2, ease: 'power2.in' };
-const ANIM_SHIFT     = { duration: 0.4, ease: 'power2.inOut' };
+// Konstanta animasi
+const IN_SCALE = { duration: 0.6, ease: 'power2.out' };
+const OUT_SCALE = { duration: 0.6, ease: 'power2.out' };
+const IN_FADE = { duration: 0.3, ease: 'power2.out' };
+const OUT_FADE = { duration: 0.2, ease: 'power2.in' };
+const SHIFT = { duration: 0.4, ease: 'power2.inOut' };
 
 export default function FocusBar() {
   const { focusedId, isClosing, setFocusedId } = useFocus();
   const { popup, setPopup } = usePopup();
 
-  const isProject      = popup === 'project';
-  const focusActive    = focusedId !== null && !isClosing;
-  const barVisible     = focusActive && !isProject;
+  const isProject = popup === 'project';
+  const focusActive = focusedId !== null && !isClosing;
+  const barVisible = focusActive && !isProject;
   const collapseVisible = focusActive;
 
   const lastTileRef = useRef(null);
@@ -34,22 +30,21 @@ export default function FocusBar() {
   if (tile) lastTileRef.current = tile;
   const displayTile = tile ?? lastTileRef.current;
 
-  const description  = displayTile?.description ?? '';
-  const projectSlug  = displayTile?.projectSlug;
-  const project      = projectSlug ? getProject(projectSlug) : null;
-  const hasProject   = !!project;
+  const description = displayTile?.description ?? '';
+  const project = displayTile?.projectSlug ? getProject(displayTile.projectSlug) : null;
+  const hasProject = !!project;
 
-  const barRef      = useRef(null);
-  const collapseRef = useRef(null);
-  const barInit     = useRef(false);
+  const barRef = useRef(null);
+  const colRef = useRef(null);
+  const barInit = useRef(false);
 
   useLayoutEffect(() => {
     const bar = barRef.current;
-    const col = collapseRef.current;
+    const col = colRef.current;
     if (!bar || !col) return;
 
-    const barWidth = bar.getBoundingClientRect().width;
-    const targetX  = isProject ? -(barWidth + 8) / 2 : 0;
+    const barW = bar.getBoundingClientRect().width;
+    const targetX = isProject ? -(barW + 8) / 2 : 0;
 
     if (!barInit.current) {
       barInit.current = true;
@@ -58,17 +53,13 @@ export default function FocusBar() {
       return;
     }
 
-    gsap.to(bar, { scale: +!!barVisible, ...(barVisible ? ANIM_IN_SCALE : ANIM_OUT_SCALE) });
-    gsap.to(bar, { opacity: +!!barVisible, ...(barVisible ? ANIM_IN_FADE : ANIM_OUT_FADE) });
-
-    gsap.to(bar, { x: targetX, ...ANIM_SHIFT });
-    gsap.to(col, { x: targetX, ...ANIM_SHIFT });
-
-    gsap.to(col, { scale: +!!collapseVisible, ...(collapseVisible ? ANIM_BTN_IN : ANIM_BTN_OUT) });
-    gsap.to(col, { opacity: +!!collapseVisible, ...(collapseVisible ? ANIM_BTN_FADE_IN : ANIM_BTN_FADE_OUT) });
+    gsap.to(bar, { scale: +!!barVisible, ...(barVisible ? IN_SCALE : OUT_SCALE) });
+    gsap.to(bar, { opacity: +!!barVisible, ...(barVisible ? IN_FADE : OUT_FADE) });
+    gsap.to(bar, { x: targetX, ...SHIFT });
+    gsap.to(col, { x: targetX, ...SHIFT });
+    gsap.to(col, { scale: +!!collapseVisible, ...(collapseVisible ? IN_SCALE : OUT_SCALE) });
+    gsap.to(col, { opacity: +!!collapseVisible, ...(collapseVisible ? IN_FADE : OUT_FADE) });
   }, [barVisible, collapseVisible, isProject]);
-
-  const closeLabel = isProject ? 'Collapse project details' : 'Close';
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-8 z-20 flex justify-center px-8">
@@ -90,15 +81,19 @@ export default function FocusBar() {
               style={{ border: '1px solid rgba(0, 0, 0, 0.1)' }}
             >
               {project && (
-                <img src={project.icon} alt="" draggable={false} className="size-full object-cover" />
+                <img
+                  src={project.icon}
+                  alt=""
+                  draggable={false}
+                  className="size-full object-cover"
+                />
               )}
             </div>
-
             <div className="flex min-w-0 flex-1 flex-col items-start">
               <p className="line-clamp-2 w-full text-[12px] leading-[120%] tracking-[-0.01em] text-black/65">
                 {description}
               </p>
-              {project && (
+              {hasProject && (
                 <span className="shrink-0 text-[12px] leading-[120%] tracking-[-0.01em] text-black underline underline-offset-2">
                   more info +
                 </span>
@@ -107,17 +102,17 @@ export default function FocusBar() {
           </button>
         </div>
 
-        <div ref={collapseRef} className="shrink-0">
+        <div ref={colRef} className="shrink-0">
           <button
             type="button"
-            aria-label={closeLabel}
+            aria-label={isProject ? 'Collapse project details' : 'Close'}
             aria-hidden={!collapseVisible}
             onClick={isProject ? () => setPopup(null) : () => setFocusedId(null)}
             style={{ pointerEvents: collapseVisible ? 'auto' : 'none' }}
             className="btn-interactive flex size-16 items-center justify-center rounded-full bg-white text-black"
           >
             <img
-              src={isProject ? '/media/icons/COLLAPSE.svg' : '/media/icons/CLOSE.svg'}
+              src="/media/icons/COLLAPSE.svg"
               alt=""
               draggable={false}
               className="size-6"
