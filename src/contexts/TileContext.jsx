@@ -1,20 +1,10 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ALL_TILES } from '../data/tiles';
 import { usePopup } from './PopupContext';
 import { detectSize } from '../utils/media';
-import { distributeToColumns } from '../utils/layout';
+import { distributeToColumns, NUM_COLS } from '../utils/layout';
 
-const NUM_COLS = 7;
-
-const TRANSITION_DURATION = 0.6 * 0.8;
+const TRANSITION_DURATION_MS = 480;
 
 const TileContext = createContext(null);
 
@@ -29,10 +19,10 @@ function shuffled(arr) {
 
 export function TileProvider({ children }) {
   const { category } = usePopup();
+
   const [tiles, setTiles] = useState([]);
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState(null);
   const [nonce, setNonce] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
   const [activeCategory, setActiveCategory] = useState(category);
@@ -41,11 +31,6 @@ export function TileProvider({ children }) {
   const categoryRef = useRef(category);
   categoryRef.current = category;
   const inTransition = useRef(false);
-
-
-  const [validationError] = useState(() => {
-    return null;
-  });
 
   useEffect(() => {
     let cancelled = false;
@@ -74,9 +59,7 @@ export function TileProvider({ children }) {
       }
     });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const triggerTransition = useCallback(() => {
@@ -88,7 +71,7 @@ export function TileProvider({ children }) {
       setNonce((n) => n + 1);
       setTransitioning(false);
       inTransition.current = false;
-    }, TRANSITION_DURATION * 1000);
+    }, TRANSITION_DURATION_MS);
   }, []);
 
   useEffect(() => {
@@ -116,7 +99,6 @@ export function TileProvider({ children }) {
         columns,
         nonce,
         transitioning,
-        error: error || validationError,
         progress,
         ready,
         chromeRevealed,
