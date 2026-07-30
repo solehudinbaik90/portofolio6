@@ -2,20 +2,6 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useTiles } from '../../contexts/TileContext';
 
-const SHOW_DUR   = 1;
-const SHOW_EASE  = 'expo.out';
-const SHOW_OPACITY_DUR  = 1;
-const SHOW_OPACITY_EASE = 'power2.out';
-
-const HIDE_SCALE_DUR  = 0.55;
-const HIDE_SCALE_EASE = 'expo.in';
-const HIDE_OPACITY_DUR  = 0.55;
-const HIDE_OPACITY_EASE = 'power2.out';
-
-const OVERLAY_DUR  = 0.35;
-const OVERLAY_EASE = 'power2.in';
-const OVERLAY_REVEAL_OFFSET = '>-0.1';
-
 const MIN_DISPLAY_MS = 800;
 
 const NAME_ROWS = [
@@ -29,35 +15,31 @@ export default function LoadingScreen() {
 
   const overlayRef = useRef(null);
   const counterRef = useRef(null);
-  const nameRef    = useRef(null);
-  const logoRef    = useRef(null);
-  const bootTime   = useRef(performance.now());
+  const nameRef = useRef(null);
+  const logoRef = useRef(null);
+  const bootTime = useRef(performance.now());
 
-  // ── Init animasi masuk ───────────────────────────────────────────────────
   useLayoutEffect(() => {
     gsap.set([counterRef.current, logoRef.current], { scale: 0, opacity: 0 });
     gsap.set(logoRef.current, { xPercent: -50 });
+    gsap.set(nameRef.current, { scale: 0, opacity: 0 });
 
     const tl = gsap.timeline();
     tl.to([counterRef.current, logoRef.current], {
-      scale:    1,
-      duration: SHOW_DUR,
-      ease:     SHOW_EASE,
+      scale: 1,
+      duration: 1,
+      ease: 'expo.out',
     }, 0);
     tl.to([counterRef.current, logoRef.current], {
-      opacity:  1,
-      duration: SHOW_OPACITY_DUR,
-      ease:     SHOW_OPACITY_EASE,
+      opacity: 1,
+      duration: 1,
+      ease: 'power2.out',
     }, 0);
     tl.to(nameRef.current, {
-      scale:    1,
+      scale: 1,
+      opacity: 1,
       duration: 0.4,
-      ease:     'power2.out',
-    }, 0);
-    tl.to(nameRef.current, {
-      opacity:  1,
-      duration: 0.3,
-      ease:     'power2.out',
+      ease: 'power2.out',
     }, 0);
 
     return () => tl.kill();
@@ -69,46 +51,28 @@ export default function LoadingScreen() {
     }
   }, [progress]);
 
-
   useEffect(() => {
     if (!ready) return;
 
     const elapsed = performance.now() - bootTime.current;
-    const delay   = Math.max(0, MIN_DISPLAY_MS - elapsed);
+    const delay = Math.max(0, MIN_DISPLAY_MS - elapsed);
     let tl = null;
 
     const timerId = window.setTimeout(() => {
       tl = gsap.timeline({ onComplete: () => setGone(true) });
 
-      tl.to(nameRef.current, {
-        scale:    0,
-        duration: 0.3,
-        ease:     'power2.in',
-      }, 0);
-      tl.to(nameRef.current, {
-        opacity:  0,
-        duration: 0.2,
-        ease:     'power2.in',
-      }, 0);
+      tl.to(nameRef.current, { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' }, 0);
 
-      tl.to(counterRef.current, {
-        scale:    0,
-        duration: HIDE_SCALE_DUR,
-        ease:     HIDE_SCALE_EASE,
-      }, 0);
-      tl.to(counterRef.current, {
-        opacity:  0,
-        duration: HIDE_OPACITY_DUR,
-        ease:     HIDE_OPACITY_EASE,
-      }, 0);
+      tl.to(counterRef.current, { scale: 0, duration: 0.55, ease: 'expo.in' }, 0);
+      tl.to(counterRef.current, { opacity: 0, duration: 0.55, ease: 'power2.out' }, 0);
 
       tl.to(overlayRef.current, {
         autoAlpha: 0,
-        duration:  OVERLAY_DUR,
-        ease:      OVERLAY_EASE,
-      }, OVERLAY_REVEAL_OFFSET);
+        duration: 0.35,
+        ease: 'power2.in',
+      }, '>-0.1');
 
-      tl.call(revealChrome, [], OVERLAY_REVEAL_OFFSET);
+      tl.call(revealChrome, [], '>-0.1');
     }, delay);
 
     return () => {
