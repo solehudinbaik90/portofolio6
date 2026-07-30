@@ -1,7 +1,6 @@
 const _imgCache = [];
 
-{Promise<{width: number, height: number} | null>}
-
+/** @returns {Promise<{width: number, height: number} | null>} */
 function detectImageDims(src) {
   const img = new Image();
   img.decoding = 'sync';
@@ -15,8 +14,7 @@ function detectImageDims(src) {
     .catch(() => null);
 }
 
-{Promise<{width: number, height: number} | null>}
-
+/** @returns {Promise<{width: number, height: number} | null>} */
 function detectVideoDims(media) {
   if (media.posterSrc) return detectImageDims(media.posterSrc);
   return new Promise((resolve) => {
@@ -45,8 +43,7 @@ export function dimsToSize(width, height) {
   return 'md';
 }
 
-{Promise<string>}
-
+/** @returns {Promise<string>} */
 export async function detectSize(media) {
   const dims =
     media.kind === 'video'
@@ -70,12 +67,10 @@ export function primeVideo(el) {
   }
 }
 
-
 export function playTileVideo(tileEl) {
   const v = tileEl?.querySelector('video');
   if (v && v.paused) v.play().catch(() => {});
 }
-
 
 export function pauseTileVideo(tileEl) {
   const v = tileEl?.querySelector('video');
