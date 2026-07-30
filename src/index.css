@@ -1,4 +1,4 @@
-/* ==================== KOSTUM TAILWIND C ES ES ==================== */
+/* ==================== KOSTUM TAILWIND CSS ==================== */
 @import "tailwindcss";
 
 /* ==================== FONT FACE ==================== */
@@ -10,44 +10,51 @@
   font-display: swap;
 }
 
-/* ==================== CUSTOM PROPERTI ==================== */
+/* ==================== CUSTOM PROPERTIES ==================== */
 :root {
-    --background: #f1f1f1;
-    --foreground: #000;
-    --font-display: "Tausend Soft", system-ui, sans-serif;
-    --tile-focus-w: 333px;
-    --tile-focus-w-landscape: 333px;
-    --btn-hover-scale: 1.025;
-    --btn-press-scale: .9;
-    --btn-hover-brightness: .92;
-    --btn-transition-duration: .2s;
-    --btn-transition-ease: cubic-bezier(.2, 0, 0, 1);
-    --menu-row-rest-opacity: .33;
-    --menu-row-hover-opacity: 1;
-    --ui-shadow: 0 8px 24px 0 #11111a1a, 0 16px 56px 0 #11111a1a, 0 24px 80px 0 #11111a1a;
-    --ui-border: 1px solid #0000001a;
-    --scrollbar-size: 0px;
-    --scrollbar-thumb: #00000026;
-    --scrollbar-thumb-hover: #00000026;
-    --scrollbar-track: transparent;
-    --scrollbar-thumb-radius: 9999px;
-    --scrollbar-thumb-margin: 3px
+  --background: #f1f1f1;
+  --foreground: #000;
+  --font-display: "Tausend Soft", system-ui, sans-serif;
+  --tile-focus-w: 320px;
+  --tile-focus-w-landscape: 480px;
+  --col-width-base: 216px;
+  --col-width-md: 360px;
+  --col-width-xl: 480px;
+  --btn-hover-scale: 1.025;
+  --btn-press-scale: 0.9;
+  --btn-hover-brightness: 0.92;
+  --btn-transition-duration: 0.2s;
+  --btn-transition-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ui-shadow: 0 8px 24px 0 #11111a1a, 0 16px 56px 0 #11111a1a, 0 24px 80px 0 #11111a1a;
+  --ui-border: 1px solid #0000001a;
+  --scrollbar-size: 4px;
+  --scrollbar-thumb: #00000026;
+  --scrollbar-thumb-hover: #00000040;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb-radius: 9999px;
+  --scrollbar-thumb-margin: 2px;
 }
 
-@media (width>=768px) {
-    : root {
-        --tile-focus-w:399px;
-        --tile-focus-w-landscape: 540px
-    }
+@media (min-width: 768px) {
+  :root {
+    --tile-focus-w: 480px;
+    --tile-focus-w-landscape: 640px;
+  }
 }
 
-@media (width>=1920px) {
-    : root {
-        --tile-focus-w:540px;
-        --tile-focus-w-landscape: 720px
-    }
+@media (min-width: 1280px) {
+  :root {
+    --tile-focus-w: 560px;
+    --tile-focus-w-landscape: 800px;
+  }
 }
 
+@media (min-width: 1920px) {
+  :root {
+    --tile-focus-w: 720px;
+    --tile-focus-w-landscape: 1080px;
+  }
+}
 
 /* ==================== GLOBAL STYLES ==================== */
 html,
@@ -62,6 +69,7 @@ body {
   overflow: hidden;
 }
 
+/* Hide native cursor on hover devices */
 @media (hover: hover) and (pointer: fine) {
   html,
   html * {
@@ -70,78 +78,64 @@ body {
 }
 
 body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-display);
-    font-feature-settings: "ss02";
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-feature-settings: "ss02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ==================== CUSTOM COMPONENTS ==================== */
-
 .btn-interactive {
-    transform-origin: 50%;
-    box-shadow: var(--ui-shadow);
-    border: var(--ui-border);
-    transition: transform var(--btn-transition-duration) var(--btn-transition-ease), filter var(--btn-transition-duration) var(--btn-transition-ease)
+  transform-origin: 50%;
+  box-shadow: var(--ui-shadow);
+  border: var(--ui-border);
+  transition:
+    transform var(--btn-transition-duration) var(--btn-transition-ease),
+    filter var(--btn-transition-duration) var(--btn-transition-ease);
 }
 
 .ui-shadow {
-    box-shadow: var(--ui-shadow);
-    border: var(--ui-border)
+  box-shadow: var(--ui-shadow);
+  border: var(--ui-border);
 }
 
 @media (hover: hover) {
-    .btn-interactive:hover {
-        transform:scale(var(--btn-hover-scale));
-        filter: brightness(var(--btn-hover-brightness))
-    }
+  .btn-interactive:hover {
+    transform: scale(var(--btn-hover-scale));
+    filter: brightness(var(--btn-hover-brightness));
+  }
 }
 
 .btn-interactive:active {
-    transform: scale(var(--btn-press-scale));
-    filter: brightness(var(--btn-hover-brightness))
+  transform: scale(var(--btn-press-scale));
 }
-
-.menu-row .menu-row-label {
-    opacity: var(--menu-row-rest-opacity);
-    transition: opacity var(--btn-transition-duration) var(--btn-transition-ease)
-}
-
-@media (hover: hover) {
-    .menu-row:hover .menu-row-label {
-        opacity:var(--menu-row-hover-opacity)
-    }
-}
-
 
 /* ==================== CUSTOM SCROLLBAR ==================== */
-
 .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track)
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-    width: var(--scrollbar-size);
-    height: var(--scrollbar-size)
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--scrollbar-track)
+  background: var(--scrollbar-track);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border-radius: var(--scrollbar-thumb-radius);
-    border: var(--scrollbar-thumb-margin) solid transparent;
-    transition: background-color var(--btn-transition-duration) var(--btn-transition-ease);
-    background-clip: padding-box
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-thumb-radius);
+  border: var(--scrollbar-thumb-margin) solid transparent;
+  background-clip: padding-box;
 }
 
 @media (hover: hover) {
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background-color:var(--scrollbar-thumb-hover)
-    }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
 }
