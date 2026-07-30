@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
 
 const CURSOR_SIZE = 16;
-const TRAIL_WINDOW = 100; // ms
+const TRAIL_WINDOW = 100;
 const LINE_WIDTH = 4;
 const TRAIL_COLOR = '253, 1, 27';
 
