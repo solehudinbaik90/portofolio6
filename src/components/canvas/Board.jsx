@@ -21,6 +21,10 @@ const DRAG_TILE_SCALE = 0.9;
 const BLUR_ON = 'blur(56px)';
 const BLUR_OFF = 'blur(0px)';
 
+// Blur untuk media tile saat hover
+const MEDIA_BLUR_IN  = 'blur(0px)';
+const MEDIA_BLUR_OUT = 'blur(10px)';
+
 const CAT_TRANSITION_DUR = 0.6;
 const CAT_INOUT_EASE = 'power3.inOut';
 const CAT_OUT_EASE = 'power3.out';
@@ -33,10 +37,7 @@ const FOCUS_SHOW_DUR = 0.7;
 const FOCUS_SHOW_EASE = 'power2.out';
 
 const MEDIA_HOVER_CLASS =
-  'pointer-events-none size-full rounded-[inherit] object-cover ' +
-  'blur-[32px] scale-125 ' +
-  'group-hover:blur-[0px] group-hover:scale-100 ' +
-  'group-[.discovered]:blur-[0px] group-[.discovered]:scale-100';
+  'pointer-events-none size-full rounded-[inherit] object-cover scale-125';
 
 const MEDIA_TOUCH_CLASS =
   'pointer-events-none size-full rounded-[inherit] object-cover';
@@ -46,7 +47,7 @@ function VideoBadge() {
   return (
     <div
       aria-hidden
-      className="video-badge pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-[1px] rounded-[4px] bg-white px-[4px] border [border-color:rgba(0,0,0,0.1)] py-[2px] group-hover:opacity-0"
+      className="video-badge pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-[1px] rounded-[4px] bg-white px-[4px] border [border-color:rgba(0,0,0,0.1)] py-[2px]"
       style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
     >
       <svg
@@ -83,6 +84,39 @@ function VideoBadge() {
   );
 }
 
+
+function animateMediaIn(tileEl) {
+  const mediaEl = tileEl.querySelector('img, video');
+  if (!mediaEl) return;
+  gsap.to(mediaEl, {
+    filter: MEDIA_BLUR_IN,
+    scale: 1,
+    duration: 0.4,
+    ease: 'power2.out',
+    overwrite: 'auto',
+  });
+}
+
+
+function animateMediaOut(tileEl) {
+  const mediaEl = tileEl.querySelector('img, video');
+  if (!mediaEl) return;
+  gsap.to(mediaEl, {
+    filter: MEDIA_BLUR_OUT,
+    scale: 1.25,
+    duration: 0.5,
+    ease: 'power2.out',
+    overwrite: 'auto',
+  });
+}
+
+
+function setMediaDiscovered(tileEl) {
+  const mediaEl = tileEl.querySelector('img, video');
+  if (!mediaEl) return;
+  gsap.set(mediaEl, { filter: MEDIA_BLUR_IN, scale: 1 });
+}
+
 // ── Board Component ───────────────────────────────────────────────────────────
 export default function Board() {
   const { columns, nonce, transitioning, chromeRevealed } = useTiles();
@@ -110,7 +144,6 @@ export default function Board() {
   const hoveredElRef = useRef(null);
   const isDraggingRef = useRef(false);
   const willChangeRef = useRef(false);
-  const revealedRef = useRef(false);
   const initHiddenRef = useRef(false);
   const chromeRevealedRef = useRef(false);
 
@@ -250,9 +283,19 @@ export default function Board() {
     if (initHiddenRef.current) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (!tiles?.length) return;
-    gsap.set(tiles, { scale: 0, opacity: 0, ...(isHover && { filter: BLUR_ON }) });
+
+    gsap.set(tiles, { scale: 0, opacity: 0 });
+
+    if (isHover) {
+      const allMedia = innerRef.current?.querySelectorAll('[data-tile-id] img, [data-tile-id] video');
+      if (allMedia?.length) {
+        gsap.set(allMedia, { filter: MEDIA_BLUR_OUT, scale: 1.25 });
+      }
+    }
+
     initHiddenRef.current = true;
   }, [columns, isHover]);
+
 
   useEffect(() => {
     if (!chromeRevealed || chromeRevealedRef.current) return;
@@ -272,23 +315,36 @@ export default function Board() {
       delay: 0.3,
       overwrite: true,
     });
-    
+
     if (isHover) {
-    filterAnimRef.current = gsap.to(tiles, {
-      filter: BLUR_OFF,
-      duration: 0.7, ease: FILTER_EASE,
-      delay: 0.3, overwrite: true,
-      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-    });
+      const discoveredTiles = Array.from(tiles).filter((el) => el.classList.contains('discovered'));
+      if (discoveredTiles.length) {
+        discoveredTiles.forEach((tileEl) => {
+          const mediaEl = tileEl.querySelector('img, video');
+          if (mediaEl) {
+            gsap.to(mediaEl, {
+              filter: MEDIA_BLUR_IN,
+              scale: 1,
+              duration: 0.7,
+              ease: FILTER_EASE,
+              delay: 0.3,
+              overwrite: true,
+            });
+          }
+        });
+      }
     }
   }, [chromeRevealed, isHover]);
+
 
   useEffect(() => {
     if (!transitioning) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (!tiles?.length) return;
+
     scaleAnimRef.current?.kill();
     filterAnimRef.current?.kill();
+
     scaleAnimRef.current = gsap.to(tiles, {
       scale: 0,
       opacity: 0,
@@ -296,21 +352,37 @@ export default function Board() {
       ease: CAT_INOUT_EASE,
       overwrite: true,
     });
+
     if (isHover) {
-    filterAnimRef.current = gsap.to(tiles, {
-      filter: BLUR_ON,
-      duration: CAT_TRANSITION_DUR, ease: FILTER_INOUT_EASE, overwrite: true,
-    });
-  }
-}, [transitioning, isHover]);
+      const allMedia = innerRef.current?.querySelectorAll('[data-tile-id] img, [data-tile-id] video');
+      if (allMedia?.length) {
+        filterAnimRef.current = gsap.to(allMedia, {
+          filter: MEDIA_BLUR_OUT,
+          scale: 1.25,
+          duration: CAT_TRANSITION_DUR,
+          ease: FILTER_INOUT_EASE,
+          overwrite: true,
+        });
+      }
+    }
+  }, [transitioning, isHover]);
+
 
   useLayoutEffect(() => {
     if (nonce === 0) return;
     const tiles = innerRef.current?.querySelectorAll('[data-tile-id]');
     if (!tiles?.length) return;
+
     scaleAnimRef.current?.kill();
     filterAnimRef.current?.kill();
-    gsap.set(tiles, { scale: 0, opacity: 0, ...(isHover && { filter: BLUR_ON }) });
+
+    gsap.set(tiles, { scale: 0, opacity: 0 });
+
+    if (isHover) {
+      const allMedia = innerRef.current?.querySelectorAll('[data-tile-id] img, [data-tile-id] video');
+      if (allMedia?.length) gsap.set(allMedia, { filter: MEDIA_BLUR_OUT, scale: 1.25 });
+    }
+
     scaleAnimRef.current = gsap.to(tiles, {
       scale: 1,
       opacity: 1,
@@ -318,13 +390,8 @@ export default function Board() {
       ease: CAT_OUT_EASE,
       overwrite: true,
     });
-    if (isHover) {
-    filterAnimRef.current = gsap.to(tiles, {
-      filter: BLUR_OFF, duration: 1, ease: FILTER_EASE, overwrite: true,
-      onComplete: () => gsap.set(tiles, { clearProps: 'filter' }),
-    });
-  }
-}, [nonce, isHover]);
+  }, [nonce, isHover]);
+
 
   useEffect(() => {
     const inner = innerRef.current;
@@ -340,13 +407,16 @@ export default function Board() {
         ease: FOCUS_HIDE_EASE,
         overwrite: true,
       });
-      filterAnimRef.current?.kill();
-      filterAnimRef.current = gsap.to(others, {
-        filter: BLUR_ON,
-        duration: FOCUS_HIDE_DUR,
-        ease: FILTER_INOUT_EASE,
-        overwrite: true,
-      });
+      if (isHover) {
+        filterAnimRef.current?.kill();
+        const otherMedia = others.flatMap((el) => Array.from(el.querySelectorAll('img, video')));
+        filterAnimRef.current = gsap.to(otherMedia, {
+          filter: BLUR_ON,
+          duration: FOCUS_HIDE_DUR,
+          ease: FILTER_INOUT_EASE,
+          overwrite: true,
+        });
+      }
     } else if (focusedId && isClosing) {
       const others = source ? allTiles.filter((el) => el !== source) : allTiles;
       gsap.to(others, {
@@ -356,16 +426,24 @@ export default function Board() {
         ease: FOCUS_SHOW_EASE,
         overwrite: true,
       });
-      filterAnimRef.current?.kill();
-      filterAnimRef.current = gsap.to(others, {
-        filter: BLUR_OFF,
-        duration: FOCUS_SHOW_DUR,
-        ease: FILTER_EASE,
-        overwrite: true,
-        onComplete: () => gsap.set(others, { clearProps: 'filter' }),
-      });
+      if (isHover) {
+        filterAnimRef.current?.kill();
+
+        others.forEach((tileEl) => {
+          const mediaEl = tileEl.querySelector('img, video');
+          if (!mediaEl) return;
+          const isDisc = tileEl.classList.contains('discovered');
+          gsap.to(mediaEl, {
+            filter: isDisc ? MEDIA_BLUR_IN : MEDIA_BLUR_OUT,
+            scale: isDisc ? 1 : 1.25,
+            duration: FOCUS_SHOW_DUR,
+            ease: FILTER_EASE,
+            overwrite: true,
+          });
+        });
+      }
     }
-  }, [focusedId, isClosing, source]);
+  }, [focusedId, isClosing, source, isHover]);
 
   // ── IntersectionObserver untuk video ───────────────────────────────────────
   useEffect(() => {
@@ -419,7 +497,7 @@ export default function Board() {
       });
     };
 
-    const restoreTiles = (pointerType = 'mouse') => {
+    const restoreTiles = () => {
       isDraggingRef.current = false;
       const tiles = Array.from(inner.querySelectorAll('[data-tile-id]'));
       const hovered = hoveredElRef.current;
@@ -433,7 +511,7 @@ export default function Board() {
         overwrite: 'auto',
       });
 
-      if (hovered && !isDraggingRef.current) {
+      if (hovered) {
         gsap.to(hovered, {
           scale: HOVER_SCALE,
           duration: 0.9,
@@ -501,7 +579,7 @@ export default function Board() {
         if (el) playTileVideo(el);
       }
 
-      restoreTiles(e.pointerType);
+      restoreTiles();
 
       if (!hasDragged && startEl) {
         const tileEl = startEl.closest('[data-tile-id]');
@@ -544,19 +622,30 @@ export default function Board() {
         pauseTileVideo(prev);
         if (!isDraggingRef.current) {
           gsap.to(prev, { scale: 1, duration: 0.7, ease: SNAP_EASE, overwrite: 'auto' });
+
+          if (!prev.classList.contains('discovered')) {
+            animateMediaOut(prev);
+          }
         }
       }
 
       playTileVideo(el);
+
       const id = el.dataset.tileId;
       if (id && !isDiscovered(id)) {
         markDiscovered(id);
-        inner.querySelectorAll(`[data-tile-id="${id}"]`)
-          .forEach((node) => node.classList.add('discovered'));
+
+        inner.querySelectorAll(`[data-tile-id="${id}"]`).forEach((node) => {
+          node.classList.add('discovered');
+          setMediaDiscovered(node);
+        });
       }
 
       if (!isDraggingRef.current) {
+
         gsap.to(el, { scale: HOVER_SCALE, duration: 0.6, ease: SNAP_EASE, overwrite: 'auto' });
+
+        animateMediaIn(el);
       }
     };
 
@@ -566,10 +655,16 @@ export default function Board() {
       if (!el || hoveredElRef.current !== el) return;
       const related = e.relatedTarget;
       if (related && el.contains(related)) return;
+
       hoveredElRef.current = null;
       pauseTileVideo(el);
+
       if (!isDraggingRef.current) {
         gsap.to(el, { scale: 1, duration: 0.7, ease: SNAP_EASE, overwrite: 'auto' });
+
+        if (!el.classList.contains('discovered')) {
+          animateMediaOut(el);
+        }
       }
     };
 
@@ -682,7 +777,6 @@ export default function Board() {
                         }`}
                         style={{ backgroundColor: tileColor(tile) }}
                       >
-
                         {tile.media.kind === 'video' && <VideoBadge />}
 
                         {useVideo ? (
