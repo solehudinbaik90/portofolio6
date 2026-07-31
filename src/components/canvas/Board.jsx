@@ -163,37 +163,44 @@ export default function Board() {
   }, []);
 
   const applyPositions = useCallback(() => {
-    const cw = colWidthRef.current;
-    const cols = colsRef.current;
-    if (!cols.length || !innerRef.current) return;
+  const cw = colWidthRef.current;
+  const cols = colsRef.current;
+  if (!cols.length || !innerRef.current) return;
 
-    const numCols = cols.length;
-    const stride = cw + TILE_GAP;
-    const totalW = numCols * stride;
+  const numCols = cols.length;
+  const stride = cw + TILE_GAP;
+  const totalW = numCols * stride;
 
-    const wrappedX = wrapMod(posRef.current.x, totalW) - totalW;
+  const totalRepCols = (repeatX ?? 2) * numCols;
+  const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
+  
+  innerRef.current.style.transform = `translate(-50%, -50%) translateX(${centerOffset}px)`;
 
-    const totalRepCols = (repeatX ?? 2) * numCols;
-    const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
+  const totalCols = colRefs.current.length;
 
-    innerRef.current.style.transform =
-      `translate(-50%, -50%) translateX(${wrappedX + centerOffset}px)`;
+  for (let ci = 0; ci < totalCols; ci++) {
+    const el = colRefs.current[ci];
+    if (!el) continue;
 
-    const totalCols = colRefs.current.length;
-    for (let ci = 0; ci < totalCols; ci++) {
-      const el = colRefs.current[ci];
-      if (!el) continue;
-      const col = cols[ci % numCols];
-      const colH = tileColumnHeight(col, cw);
-      if (colH <= 0) continue;
-      const offset = colOffsets.current[ci % numCols] ?? 0;
-      const rawY = posRef.current.y + offset * colH;
-      const wrappedY = wrapMod(rawY, colH);
+    const colIndex = ci % numCols;
+    const col = cols[colIndex];
+    const colH = tileColumnHeight(col, cw);
+    if (colH <= 0) continue;
 
-      const finalY = wrappedY > colH / 2 ? wrappedY - colH : wrappedY;
-      el.style.transform = `translate3d(0px, ${finalY}px, 0px)`;
-    }
-  }, [repeatX]);
+    const baseRawX = posRef.current.x + (ci * stride);
+    const wrappedXBase = wrapMod(baseRawX, totalW);
+
+    const finalX = wrappedXBase > totalW / 2 ? wrappedXBase - totalW : wrappedXBase;
+
+    const offset = colOffsets.current[colIndex] ?? 0;
+    const rawY = posRef.current.y + offset * colH;
+    const wrappedY = wrapMod(rawY, colH);
+    const finalY = wrappedY > colH / 2 ? wrappedY - colH : wrappedY;
+
+    el.style.transform = `translate3d(${finalX}px, ${finalY}px, 0px)`;
+  }
+}, [repeatX]);
+
 
   // ── Lerp loop ──────────────────────────────────────────
   const stopLerp = useCallback(() => {
