@@ -39,6 +39,7 @@ export function distributeToColumns(tiles, numCols) {
   const cols = Array.from({ length: numCols }, () => []);
   if (!tiles || tiles.length === 0) return cols;
 
+  const currentCw = getColWidth();
   const heights = Array(numCols).fill(0);
 
   for (const tile of tiles) {
@@ -47,7 +48,7 @@ export function distributeToColumns(tiles, numCols) {
       if (heights[i] < heights[shortest]) shortest = i;
     }
     cols[shortest].push(tile);
-    heights[shortest] += TILE_ASPECT_RATIOS_HW[tile.size ?? 'sq'];
+    heights[shortest] += (TILE_ASPECT_RATIOS_HW[tile.size ?? 'sq'] * currentCw) + TILE_GAP;
   }
 
   for (let i = 0; i < numCols; i++) {
@@ -62,6 +63,7 @@ export function distributeToColumns(tiles, numCols) {
 
   return cols;
 }
+
 
 
 export function getColWidth() {
