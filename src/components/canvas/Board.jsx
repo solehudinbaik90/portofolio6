@@ -171,7 +171,7 @@ export default function Board() {
     const stride = cw + TILE_GAP;
     const totalW = numCols * stride;
 
-    const wrappedX = wrapMod(posRef.current.x, totalW);
+    const wrappedX = wrapMod(posRef.current.x, totalW) - totalW;
 
     const totalRepCols = (repeatX ?? 2) * numCols;
     const centerOffset = totalRepCols % 2 === 0 ? stride / 2 : 0;
