@@ -69,15 +69,15 @@ export default function InfoPanel() {
             <div className="flex items-center gap-3">
               <img
                 src="/headshot.png"
-                alt="Hamza Tariq"
+                alt="Muhamad Soleh"
                 className="size-16 shrink-0 rounded-lg object-cover"
               />
               <div className="flex flex-col">
                 <p className="text-[24px] leading-none tracking-[-0.01em] text-black">
-                  Hamza Tariq
+                  Muhamad Soleh
                 </p>
                 <p className="text-[24px] leading-none tracking-[-0.01em] text-black/35">
-                  Design etc.
+                  Guru Fisika.
                 </p>
               </div>
             </div>
