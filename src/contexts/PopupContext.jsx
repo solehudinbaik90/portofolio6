@@ -8,10 +8,10 @@ const CATEGORY_PATHS = {
 };
 
 const CATEGORY_TITLES = {
-  everything: 'Hamza T. — Design etc.',
-  brand: 'Hamza T. — Design for Brand',
-  product: 'Hamza T. — Design for Product',
-  web: 'Hamza T. — Design for Web',
+  everything: 'Msoleh. — Design etc.',
+  brand: 'Msoleh. — Design for Brand',
+  product: 'Msoleh. — Design for Product',
+  web: 'Msoleh. — Design for Web',
 };
 
 function pathToCategory(pathname) {
