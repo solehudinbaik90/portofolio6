@@ -5,8 +5,8 @@ import { useTiles } from '../../contexts/TileContext';
 const MIN_DISPLAY_MS = 800;
 
 const NAME_ROWS = [
-  ['Hamza', 'Tariq'],
-  ['Design', 'etc.'],
+  ['Muhamad', 'Soleh'],
+  ['Guru', 'Fisika.'],
 ];
 
 export default function LoadingScreen() {
