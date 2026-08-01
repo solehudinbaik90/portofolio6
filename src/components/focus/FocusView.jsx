@@ -244,18 +244,14 @@ export default function FocusView() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!focusedId) return null;
-  const tile = tilesById.get(focusedId);
+  const tile = getTile(focusedId);
   if (!tile) return null;
 
-  const realRatio =
-    tile.naturalWidth && tile.naturalHeight
-      ? tile.naturalWidth / tile.naturalHeight
-      : TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-
+  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size];
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
   const width       = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
-
+  
   return (
     <div
       ref={containerRef}
