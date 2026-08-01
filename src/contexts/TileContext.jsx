@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ALL_TILES } from '../data/tiles';
 import { usePopup } from './PopupContext';
-import { detectSize } from '../utils/media';
+import { detectSize, detectImageDims, detectVideoDims } from '../utils/media';
 import { distributeToColumns, NUM_COLS } from '../utils/layout';
 
 const TRANSITION_DURATION_MS = 480;
@@ -44,15 +44,16 @@ export function TileProvider({ children }) {
       return;
     }
 
-    Promise.all(
-      ALL_TILES.map(async (tile) => {
-        const { size, ratio, naturalWidth, naturalHeight } = await detectSize(tile.media);
-        if (!cancelled) {
-          loaded++;
-          setProgress(loaded / total);
-        }
-        return { ...tile, size, ratio, naturalWidth, naturalHeight };
-      })
+    ALL_TILES.map(async (tile) => {
+  let dims = null;
+  if (tile.media.kind === 'video') {
+    dims = await detectVideoDims(tile.media);
+  } else {
+    dims = await detectImageDims(tile.media.src);
+  }
+  const ratio = dims ? (dims.width / dims.height) : (TILE_ASPECT_RATIOS_WH[tile.size] ?? 1);
+  return { ...tile, size, naturalWidth: dims?.width, naturalHeight: dims?.height, ratio };
+    })
     ).then((result) => {
       if (!cancelled) {
         setTiles(shuffled(result));
