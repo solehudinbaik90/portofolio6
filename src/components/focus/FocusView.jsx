@@ -39,13 +39,7 @@ export default function FocusView() {
     h: typeof window !== 'undefined' ? window.innerHeight : 720,
   });
 
-  useEffect(() => {
-    const handler = () => {
-      setVpSize({ w: window.innerWidth, h: window.innerHeight });
-      isMobileRef.current = window.innerWidth < MOBILE_BREAKPOINT;
-    };
-
-
+  
     useEffect(() => {
     const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', handler);
