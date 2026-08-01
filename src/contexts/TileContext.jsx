@@ -21,6 +21,7 @@ export function TileProvider({ children }) {
   const { category } = usePopup();
 
   const [tiles, setTiles] = useState([]);
+  const [tilesById, setTilesById] = useState(new Map());
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [nonce, setNonce] = useState(0);
@@ -45,16 +46,17 @@ export function TileProvider({ children }) {
 
     Promise.all(
       ALL_TILES.map(async (tile) => {
-        const size = await detectSize(tile.media);
+        const { size, ratio, naturalWidth, naturalHeight } = await detectSize(tile.media);
         if (!cancelled) {
           loaded++;
           setProgress(loaded / total);
         }
-        return { ...tile, size };
+        return { ...tile, size, ratio, naturalWidth, naturalHeight };
       })
     ).then((result) => {
       if (!cancelled) {
         setTiles(shuffled(result));
+        setTilesById(new Map(result.map((t) => [t.id, t])));
         setReady(true);
       }
     });
@@ -97,6 +99,7 @@ export function TileProvider({ children }) {
     <TileContext.Provider
       value={{
         columns,
+        tilesById,
         nonce,
         transitioning,
         progress,
