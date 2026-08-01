@@ -271,10 +271,9 @@ export default function FocusView() {
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
+        className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
         style={{
           width,
-          aspectRatio: String(realRatio),
           backgroundColor: tileColor(tile),
         }}
       >
