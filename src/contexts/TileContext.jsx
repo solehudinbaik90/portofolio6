@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ALL_TILES } from '../data/tiles';
 import { usePopup } from './PopupContext';
-import { detectSize, detectImageDims, detectVideoDims } from '../utils/media';
+import { detectSize } from '../utils/media';
 import { distributeToColumns, NUM_COLS, TILE_ASPECT_RATIOS_WH } from '../utils/layout';
 
 const TRANSITION_DURATION_MS = 480;
-
 const TileContext = createContext(null);
 
 function shuffled(arr) {
@@ -46,47 +45,56 @@ export function TileProvider({ children }) {
 
     Promise.all(
       ALL_TILES.map(async (tile) => {
-        // detect size (ws/ls/sq/...)
-        const size = await detectSize(tile.media);
-        // detect natural dims (image or video)
-        let dims = null;
-        if (tile.media.kind === 'video') {
-          dims = await detectVideoDims(tile.media);
-        } else {
-          dims = await detectImageDims(tile.media.src);
+        let info = null;
+        try {
+          info = await detectSize(tile.media); // { size, ratio, naturalWidth, naturalHeight }
+        } catch (e) {
+          info = null;
         }
-        const ratio = dims
-          ? dims.width / dims.height
-          : (TILE_ASPECT_RATIOS_WH[size] ?? 1);
+
+        const size = info?.size ?? tile.size ?? 'sq';
+        const ratio = info?.ratio ?? (TILE_ASPECT_RATIOS_WH[size] ?? 1);
+        const naturalWidth = info?.naturalWidth ?? null;
+        const naturalHeight = info?.naturalHeight ?? null;
 
         if (!cancelled) {
           loaded++;
-          // update progress incrementally
-          setProgress(loaded / total);
+          setProgress(Math.min(1, loaded / total));
         }
 
         return {
           ...tile,
           size,
           ratio,
-          naturalWidth: dims?.width ?? null,
-          naturalHeight: dims?.height ?? null,
+          naturalWidth,
+          naturalHeight,
         };
       })
     )
-      .then((result) => {
+      .then((tilesWithInfo) => {
         if (cancelled) return;
-        const shuffledTiles = shuffled(result);
+        const shuffledTiles = shuffled(tilesWithInfo);
         setTiles(shuffledTiles);
         setTilesById(new Map(shuffledTiles.map((t) => [t.id, t])));
         setProgress(1);
         setReady(true);
       })
       .catch(() => {
-        if (!cancelled) {
-          // on error still try to expose whatever we have
-          setReady(true);
-        }
+        if (cancelled) return;
+        // fallback: use original tiles with best-effort ratio
+        const fallback = shuffled(
+          ALL_TILES.map((t) => ({
+            ...t,
+            size: t.size ?? 'sq',
+            ratio: TILE_ASPECT_RATIOS_WH[t.size] ?? 1,
+            naturalWidth: null,
+            naturalHeight: null,
+          }))
+        );
+        setTiles(fallback);
+        setTilesById(new Map(fallback.map((t) => [t.id, t])));
+        setProgress(1);
+        setReady(true);
       });
 
     return () => {
@@ -113,17 +121,11 @@ export function TileProvider({ children }) {
   const revealChrome = useCallback(() => setChromeRevealed(true), []);
 
   const filteredTiles = useMemo(
-    () =>
-      activeCategory === 'everything'
-        ? tiles
-        : tiles.filter((t) => t.category === activeCategory),
+    () => (activeCategory === 'everything' ? tiles : tiles.filter((t) => t.category === activeCategory)),
     [tiles, activeCategory]
   );
 
-  const columns = useMemo(
-    () => distributeToColumns(filteredTiles, NUM_COLS),
-    [filteredTiles]
-  );
+  const columns = useMemo(() => distributeToColumns(filteredTiles, NUM_COLS), [filteredTiles]);
 
   return (
     <TileContext.Provider
