@@ -1,7 +1,7 @@
 const _imgCache = [];
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-export function detectImageDims(src) {
+function detectImageDims(src) {
   const img = new Image();
   img.decoding = 'sync';
   img.src = src;
@@ -15,7 +15,7 @@ export function detectImageDims(src) {
 }
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-export function detectVideoDims(media) {
+function detectVideoDims(media) {
   if (media.posterSrc) return detectImageDims(media.posterSrc);
   return new Promise((resolve) => {
     const v = document.createElement('video');
