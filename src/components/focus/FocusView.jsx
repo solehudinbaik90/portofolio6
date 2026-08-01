@@ -225,7 +225,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // ── Wheel zoom (desktop hover only) ───────────────────────────────────────
+  // ── Wheel zoom ───────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -302,7 +302,7 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+                className="pointer-events-none absolute inset-0 size-full object-contain"
               />
             )}
             <video
@@ -313,7 +313,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-cover"
+              className="relative size-full object-contain"
             />
           </>
         ) : (
@@ -321,7 +321,7 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            className="size-full object-cover"
+            className="size-full object-contain"
           />
         )}
       </div>
