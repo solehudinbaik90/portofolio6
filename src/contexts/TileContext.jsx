@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { ALL_TILES } from '../data/tiles';
 import { usePopup } from './PopupContext';
 import { detectSize, detectImageDims, detectVideoDims } from '../utils/media';
-import { distributeToColumns, NUM_COLS } from '../utils/layout';
+import { distributeToColumns, NUM_COLS, TILE_ASPECT_RATIOS_WH } from '../utils/layout';
 
 const TRANSITION_DURATION_MS = 480;
 
@@ -44,25 +44,54 @@ export function TileProvider({ children }) {
       return;
     }
 
-    ALL_TILES.map(async (tile) => {
-  let dims = null;
-  if (tile.media.kind === 'video') {
-    dims = await detectVideoDims(tile.media);
-  } else {
-    dims = await detectImageDims(tile.media.src);
-  }
-  const ratio = dims ? (dims.width / dims.height) : (TILE_ASPECT_RATIOS_WH[tile.size] ?? 1);
-  return { ...tile, size, naturalWidth: dims?.width, naturalHeight: dims?.height, ratio };
-    })
-    ).then((result) => {
-      if (!cancelled) {
-        setTiles(shuffled(result));
-        setTilesById(new Map(result.map((t) => [t.id, t])));
-        setReady(true);
-      }
-    });
+    Promise.all(
+      ALL_TILES.map(async (tile) => {
+        // detect size (ws/ls/sq/...)
+        const size = await detectSize(tile.media);
+        // detect natural dims (image or video)
+        let dims = null;
+        if (tile.media.kind === 'video') {
+          dims = await detectVideoDims(tile.media);
+        } else {
+          dims = await detectImageDims(tile.media.src);
+        }
+        const ratio = dims
+          ? dims.width / dims.height
+          : (TILE_ASPECT_RATIOS_WH[size] ?? 1);
 
-    return () => { cancelled = true; };
+        if (!cancelled) {
+          loaded++;
+          // update progress incrementally
+          setProgress(loaded / total);
+        }
+
+        return {
+          ...tile,
+          size,
+          ratio,
+          naturalWidth: dims?.width ?? null,
+          naturalHeight: dims?.height ?? null,
+        };
+      })
+    )
+      .then((result) => {
+        if (cancelled) return;
+        const shuffledTiles = shuffled(result);
+        setTiles(shuffledTiles);
+        setTilesById(new Map(shuffledTiles.map((t) => [t.id, t])));
+        setProgress(1);
+        setReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // on error still try to expose whatever we have
+          setReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const triggerTransition = useCallback(() => {
