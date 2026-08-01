@@ -15,11 +15,8 @@
   --background: #f1f1f1;
   --foreground: #000;
   --font-display: "Tausend Soft", system-ui, sans-serif;
-  --tile-focus-w: 320px;
-  --tile-focus-w-landscape: 480px;
-  --col-width-base: 216px;
-  --col-width-md: 360px;
-  --col-width-xl: 480px;
+  --tile-focus-w: 333px;
+  --tile-focus-w-landscape: 333px;
   --btn-hover-scale: 1.025;
   --btn-press-scale: 0.9;
   --btn-hover-brightness: 0.92;
@@ -35,26 +32,20 @@
   --scrollbar-thumb-margin: 2px;
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   :root {
-    --tile-focus-w: 480px;
-    --tile-focus-w-landscape: 640px;
+    --tile-focus-w: 399px;
+    --tile-focus-w-landscape: 540px;
   }
 }
 
-@media (min-width: 1280px) {
+@media (width >= 1920px) {
   :root {
-    --tile-focus-w: 560px;
-    --tile-focus-w-landscape: 800px;
+    --tile-focus-w: 540px;
+    --tile-focus-w-landscape: 720px;
   }
 }
 
-@media (min-width: 1920px) {
-  :root {
-    --tile-focus-w: 720px;
-    --tile-focus-w-landscape: 1080px;
-  }
-}
 
 /* ==================== GLOBAL STYLES ==================== */
 html,
