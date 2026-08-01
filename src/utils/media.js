@@ -49,7 +49,16 @@ export async function detectSize(media) {
     media.kind === 'video'
       ? await detectVideoDims(media)
       : await detectImageDims(media.src);
-  return dims ? dimsToSize(dims.width, dims.height) : 'sq';
+  if (!dims || !dims.width || !dims.height) {
+    return { size: 'sq', ratio: 1, naturalWidth: 0, naturalHeight: 0 };
+  }
+
+  return {
+    size: dimsToSize(dims.width, dims.height),
+    ratio: dims.width / dims.height,
+    naturalWidth: dims.width,
+    naturalHeight: dims.height,
+  };
 }
 
 export function primeVideo(el) {
