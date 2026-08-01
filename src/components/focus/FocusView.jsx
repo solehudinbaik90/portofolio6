@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback, useState, useMemo } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
