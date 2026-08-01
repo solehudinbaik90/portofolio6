@@ -1,152 +1,109 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ALL_TILES } from '../data/tiles';
-import { usePopup } from './PopupContext';
-import { detectSize } from '../utils/media';
-import { distributeToColumns, NUM_COLS, TILE_ASPECT_RATIOS_WH } from '../utils/layout';
+const _imgCache = [];
 
-const TRANSITION_DURATION_MS = 480;
-const TileContext = createContext(null);
-
-function shuffled(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+/** @returns {Promise<{width: number, height: number} | null>} */
+export async function detectImageDims(src) {
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    await img.decode();
+    _imgCache.push(img);
+    return { width: img.naturalWidth, height: img.naturalHeight };
+  } catch (err) {
+    return null;
   }
-  return a;
 }
 
-export function TileProvider({ children }) {
-  const { category } = usePopup();
+/** @returns {Promise<{width: number, height: number} | null>} */
+export function detectVideoDims(media) {
+  // gunakan poster bila ada (lebih cepat)
+  if (media.posterSrc) return detectImageDims(media.posterSrc);
+  return new Promise((resolve) => {
+    try {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      // pasang handler dulu
+      v.addEventListener('loadedmetadata', () => {
+        // some browsers might report 0 if CORS blocked; guard it
+        const w = v.videoWidth || 0;
+        const h = v.videoHeight || 0;
+        resolve(w && h ? { width: w, height: h } : null);
+      }, { once: true });
+      v.addEventListener('error', () => resolve(null), { once: true });
+      v.src = media.src;
+      v.load();
+    } catch (err) {
+      resolve(null);
+    }
+  });
+}
 
-  const [tiles, setTiles] = useState([]);
-  const [tilesById, setTilesById] = useState(new Map());
-  const [ready, setReady] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [nonce, setNonce] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(category);
-  const [chromeRevealed, setChromeRevealed] = useState(false);
+const SIZE_MAP = [
+  [0.656, 'ws'],
+  [0.875, 'ls'],
+  [1.125, 'sq'],
+  [1.292, 'lg'],
+];
 
-  const categoryRef = useRef(category);
-  categoryRef.current = category;
-  const inTransition = useRef(false);
+export function dimsToSize(width, height) {
+  if (!width || !height) return 'sq';
+  const ratio = height / width;
+  for (const [threshold, size] of SIZE_MAP) {
+    if (ratio < threshold) return size;
+  }
+  return 'md';
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    let loaded = 0;
-    const total = ALL_TILES.length;
+/**
+ * Detect size and return an object with useful metadata:
+ * { size, ratio, naturalWidth, naturalHeight }
+ */
+export async function detectSize(media) {
+  try {
+    const dims =
+      media.kind === 'video'
+        ? await detectVideoDims(media)
+        : await detectImageDims(media.src);
 
-    if (total === 0) {
-      setProgress(1);
-      setReady(true);
-      return;
+    if (!dims || !dims.width || !dims.height) {
+      return { size: 'sq', ratio: 1, naturalWidth: null, naturalHeight: null };
     }
 
-    Promise.all(
-      ALL_TILES.map(async (tile) => {
-        let info = null;
-        try {
-          info = await detectSize(tile.media); // { size, ratio, naturalWidth, naturalHeight }
-        } catch (e) {
-          info = null;
-        }
-
-        const size = info?.size ?? tile.size ?? 'sq';
-        const ratio = info?.ratio ?? (TILE_ASPECT_RATIOS_WH[size] ?? 1);
-        const naturalWidth = info?.naturalWidth ?? null;
-        const naturalHeight = info?.naturalHeight ?? null;
-
-        if (!cancelled) {
-          loaded++;
-          setProgress(Math.min(1, loaded / total));
-        }
-
-        return {
-          ...tile,
-          size,
-          ratio,
-          naturalWidth,
-          naturalHeight,
-        };
-      })
-    )
-      .then((tilesWithInfo) => {
-        if (cancelled) return;
-        const shuffledTiles = shuffled(tilesWithInfo);
-        setTiles(shuffledTiles);
-        setTilesById(new Map(shuffledTiles.map((t) => [t.id, t])));
-        setProgress(1);
-        setReady(true);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        // fallback: use original tiles with best-effort ratio
-        const fallback = shuffled(
-          ALL_TILES.map((t) => ({
-            ...t,
-            size: t.size ?? 'sq',
-            ratio: TILE_ASPECT_RATIOS_WH[t.size] ?? 1,
-            naturalWidth: null,
-            naturalHeight: null,
-          }))
-        );
-        setTiles(fallback);
-        setTilesById(new Map(fallback.map((t) => [t.id, t])));
-        setProgress(1);
-        setReady(true);
-      });
-
-    return () => {
-      cancelled = true;
+    return {
+      size: dimsToSize(dims.width, dims.height),
+      ratio: dims.width / dims.height,
+      naturalWidth: dims.width,
+      naturalHeight: dims.height,
     };
-  }, []);
-
-  const triggerTransition = useCallback(() => {
-    if (inTransition.current) return;
-    inTransition.current = true;
-    setTransitioning(true);
-    window.setTimeout(() => {
-      setActiveCategory(categoryRef.current);
-      setNonce((n) => n + 1);
-      setTransitioning(false);
-      inTransition.current = false;
-    }, TRANSITION_DURATION_MS);
-  }, []);
-
-  useEffect(() => {
-    if (category !== activeCategory) triggerTransition();
-  }, [category, activeCategory, triggerTransition]);
-
-  const revealChrome = useCallback(() => setChromeRevealed(true), []);
-
-  const filteredTiles = useMemo(
-    () => (activeCategory === 'everything' ? tiles : tiles.filter((t) => t.category === activeCategory)),
-    [tiles, activeCategory]
-  );
-
-  const columns = useMemo(() => distributeToColumns(filteredTiles, NUM_COLS), [filteredTiles]);
-
-  return (
-    <TileContext.Provider
-      value={{
-        columns,
-        tilesById,
-        nonce,
-        transitioning,
-        progress,
-        ready,
-        chromeRevealed,
-        revealChrome,
-      }}
-    >
-      {children}
-    </TileContext.Provider>
-  );
+  } catch (err) {
+    return { size: 'sq', ratio: 1, naturalWidth: null, naturalHeight: null };
+  }
 }
 
-export function useTiles() {
-  const ctx = useContext(TileContext);
-  if (!ctx) throw new Error('useTiles must be used within TileProvider');
-  return ctx;
+export function primeVideo(el) {
+  if (el.dataset.primed) return;
+  el.dataset.primed = '1';
+  const load = () => {
+    try { el.currentTime = 0.001; } catch {}
+  };
+  if (el.readyState >= 1) {
+    load();
+  } else {
+    el.addEventListener('loadedmetadata', load, { once: true });
+    el.preload = 'metadata';
+    el.load();
+  }
+}
+
+export function playTileVideo(tileEl) {
+  const v = tileEl?.querySelector('video');
+  if (v && v.paused) v.play().catch(() => {});
+}
+
+export function pauseTileVideo(tileEl) {
+  const v = tileEl?.querySelector('video');
+  if (v && !v.paused) {
+    v.pause();
+    try { v.currentTime = 0; } catch {}
+  }
 }
