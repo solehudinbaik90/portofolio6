@@ -1,6 +1,7 @@
 import { useRef, useEffect, useLayoutEffect, useCallback, useState, useMemo } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
+import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { ALL_TILES } from '../../data/tiles';
 import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
@@ -24,6 +25,7 @@ function getTile(id) {
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
+  const { tilesById } = useTiles();
   const isHover = useHoverDevice();
 
   const containerRef = useRef(null);
@@ -38,38 +40,6 @@ export default function FocusView() {
   const openDoneRef  = useRef(false);
   const isMobileRef  = useRef(false);
 
-  // ── Viewport size tracker ─────────────────────────────────────────────────
-  const [vpSize, setVpSize] = useState({
-    w: window.innerWidth,
-    h: window.innerHeight,
-  });
-
-  useEffect(() => {
-    const handler = () =>
-      setVpSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-
-  // ── Derived tile ──────────────────────────────────────────────────────────
-
-  const tile = focusedId ? getTile(focusedId) : null;
-
-  // ── Dimension calculation ─────────────────────────────────────────────────
-  const { finalWidth, finalHeight } = useMemo(() => {
-    if (!tile) return { finalWidth: 0, finalHeight: 0 };
-
-    const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size];
-    const maxW = vpSize.w - SIDE_PAD;
-    const maxH = vpSize.h - CHROME_PADDING;
-
-    const heightIfMaxWidth = maxW / aspectWH;
-
-    if (heightIfMaxWidth > maxH) {
-      return { finalWidth: maxH * aspectWH, finalHeight: maxH };
-    }
-    return { finalWidth: maxW, finalHeight: heightIfMaxWidth };
-  }, [tile, vpSize]);
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -273,7 +243,18 @@ export default function FocusView() {
   }, [focusedId, isHover]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (!focusedId || !tile) return null;
+  if (!focusedId) return null;
+  const tile = tilesById.get(focusedId);
+  if (!tile) return null;
+
+  const realRatio =
+    tile.naturalWidth && tile.naturalHeight
+      ? tile.naturalWidth / tile.naturalHeight
+      : TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+
+  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
+  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  const width       = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
     <div
@@ -292,8 +273,8 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          width:           `${finalWidth}px`,
-          height:          `${finalHeight}px`,
+          width,
+          aspectRatio: String(realRatio),
           backgroundColor: tileColor(tile),
         }}
       >
@@ -305,7 +286,7 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+                className="pointer-events-none absolute inset-0 size-full object-contain"
               />
             )}
             <video
@@ -316,7 +297,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-cover"
+              className="relative size-full object-contain"
             />
           </>
         ) : (
@@ -324,7 +305,7 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            className="size-full object-cover"
+            className="size-full object-contain"
           />
         )}
       </div>
