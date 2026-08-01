@@ -1,40 +1,29 @@
 const _imgCache = [];
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-export async function detectImageDims(src) {
-  try {
-    const img = new Image();
-    img.decoding = 'async';
-    img.src = src;
-    await img.decode();
-    _imgCache.push(img);
-    return { width: img.naturalWidth, height: img.naturalHeight };
-  } catch (err) {
-    return null;
-  }
+function detectImageDims(src) {
+  const img = new Image();
+  img.decoding = 'sync';
+  img.src = src;
+  return img
+    .decode()
+    .then(() => {
+      _imgCache.push(img);
+      return { width: img.naturalWidth, height: img.naturalHeight };
+    })
+    .catch(() => null);
 }
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-export function detectVideoDims(media) {
-  // gunakan poster bila ada (lebih cepat)
+function detectVideoDims(media) {
   if (media.posterSrc) return detectImageDims(media.posterSrc);
   return new Promise((resolve) => {
-    try {
-      const v = document.createElement('video');
-      v.preload = 'metadata';
-      // pasang handler dulu
-      v.addEventListener('loadedmetadata', () => {
-        // some browsers might report 0 if CORS blocked; guard it
-        const w = v.videoWidth || 0;
-        const h = v.videoHeight || 0;
-        resolve(w && h ? { width: w, height: h } : null);
-      }, { once: true });
-      v.addEventListener('error', () => resolve(null), { once: true });
-      v.src = media.src;
-      v.load();
-    } catch (err) {
-      resolve(null);
-    }
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.muted = true;
+    v.onloadedmetadata = () => resolve({ width: v.videoWidth, height: v.videoHeight });
+    v.onerror = () => resolve(null);
+    v.src = media.src;
   });
 }
 
@@ -54,30 +43,22 @@ export function dimsToSize(width, height) {
   return 'md';
 }
 
-/**
- * Detect size and return an object with useful metadata:
- * { size, ratio, naturalWidth, naturalHeight }
- */
+/** @returns {Promise<string>} */
 export async function detectSize(media) {
-  try {
-    const dims =
-      media.kind === 'video'
-        ? await detectVideoDims(media)
-        : await detectImageDims(media.src);
-
-    if (!dims || !dims.width || !dims.height) {
-      return { size: 'sq', ratio: 1, naturalWidth: null, naturalHeight: null };
-    }
-
-    return {
-      size: dimsToSize(dims.width, dims.height),
-      ratio: dims.width / dims.height,
-      naturalWidth: dims.width,
-      naturalHeight: dims.height,
-    };
-  } catch (err) {
-    return { size: 'sq', ratio: 1, naturalWidth: null, naturalHeight: null };
+  const dims =
+    media.kind === 'video'
+      ? await detectVideoDims(media)
+      : await detectImageDims(media.src);
+  if (!dims || !dims.width || !dims.height) {
+    return { size: 'sq', ratio: 1, naturalWidth: 0, naturalHeight: 0 };
   }
+
+  return {
+    size: dimsToSize(dims.width, dims.height),
+    ratio: dims.width / dims.height,
+    naturalWidth: dims.width,
+    naturalHeight: dims.height,
+  };
 }
 
 export function primeVideo(el) {
@@ -104,6 +85,6 @@ export function pauseTileVideo(tileEl) {
   const v = tileEl?.querySelector('video');
   if (v && !v.paused) {
     v.pause();
-    try { v.currentTime = 0; } catch {}
+    v.currentTime = 0;
   }
 }
