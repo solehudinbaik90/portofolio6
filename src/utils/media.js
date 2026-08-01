@@ -1,56 +1,28 @@
-const _imgCache = new Map();
+const _imgCache = [];
 
-/** 
- * @param {string} src
- * @returns {Promise<{width: number, height: number} | null>} 
- */
+/** @returns {Promise<{width: number, height: number} | null>} */
 function detectImageDims(src) {
-  if (_imgCache.has(src)) return Promise.resolve(_imgCache.get(src));
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.decoding = 'sync';
-    
-    img.onload = () => {
-      const dims = { width: img.naturalWidth, height: img.naturalHeight };
-      _imgCache.set(src, dims);
-      resolve(dims);
-    };
-
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
+  const img = new Image();
+  img.decoding = 'sync';
+  img.src = src;
+  return img
+    .decode()
+    .then(() => {
+      _imgCache.push(img);
+      return { width: img.naturalWidth, height: img.naturalHeight };
+    })
+    .catch(() => null);
 }
 
-/** 
- * @param {Object} media
- * @returns {Promise<{width: number, height: number} | null>} 
- */
+/** @returns {Promise<{width: number, height: number} | null>} */
 function detectVideoDims(media) {
   if (media.posterSrc) return detectImageDims(media.posterSrc);
-  
   return new Promise((resolve) => {
     const v = document.createElement('video');
     v.preload = 'metadata';
     v.muted = true;
-    
-    const cleanUp = () => {
-      v.onloadedmetadata = null;
-      v.onerror = null;
-      v.src = '';
-      v.load();
-    };
-
-    v.onloadedmetadata = () => {
-      resolve({ width: v.videoWidth, height: v.videoHeight });
-      cleanUp();
-    };
-
-    v.onerror = () => {
-      resolve(null);
-      cleanUp();
-    };
-
+    v.onloadedmetadata = () => resolve({ width: v.videoWidth, height: v.videoHeight });
+    v.onerror = () => resolve(null);
     v.src = media.src;
   });
 }
@@ -71,24 +43,12 @@ export function dimsToSize(width, height) {
   return 'md';
 }
 
-/**
- * @typedef {Object} MediaSizeResult
- * @property {string} size
- * @property {number} ratio
- * @property {number} naturalWidth
- * @property {number} naturalHeight
- */
-
-/** 
- * @param {Object} media
- * @returns {Promise<MediaSizeResult>} 
- */
+/** @returns {Promise<string>} */
 export async function detectSize(media) {
   const dims =
     media.kind === 'video'
       ? await detectVideoDims(media)
       : await detectImageDims(media.src);
-      
   if (!dims || !dims.width || !dims.height) {
     return { size: 'sq', ratio: 1, naturalWidth: 0, naturalHeight: 0 };
   }
@@ -127,8 +87,4 @@ export function pauseTileVideo(tileEl) {
     v.pause();
     v.currentTime = 0;
   }
-}
-
-export function clearImageCache() {
-  _imgCache.clear();
 }
