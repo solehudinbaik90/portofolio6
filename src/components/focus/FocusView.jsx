@@ -9,8 +9,8 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 224;
-const SIDE_PAD          = 64;
+const CHROME_PADDING    = 1000;
+const SIDE_PAD          = 900;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -35,12 +35,11 @@ export default function FocusView() {
   const isMobileRef  = useRef(false);
 
   const [vpSize, setVpSize] = useState({
-    w: typeof window !== 'undefined' ? window.innerWidth : 1280,
-    h: typeof window !== 'undefined' ? window.innerHeight : 720,
+    w: window.innerWidth,
+    h: window.innerHeight,
   });
 
-  
-    useEffect(() => {
+  useEffect(() => {
     const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', handler);
     window.addEventListener('orientationchange', handler);
