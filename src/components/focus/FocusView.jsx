@@ -1,9 +1,8 @@
 import { useRef, useEffect, useLayoutEffect, useCallback, useState, useMemo } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
+import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { ALL_TILES } from '../../data/tiles';
-import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
 const OPEN_DUR          = 0.7;
@@ -18,12 +17,9 @@ const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
 const MIN_SCALE         = 1;
 
-function getTile(id) {
-  return ALL_TILES.find((t) => t.id === id) ?? null;
-}
-
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
+  const { tilesById } = useTiles();
   const isHover = useHoverDevice();
 
   const containerRef = useRef(null);
@@ -38,40 +34,46 @@ export default function FocusView() {
   const openDoneRef  = useRef(false);
   const isMobileRef  = useRef(false);
 
-  // ── Viewport size tracker ─────────────────────────────────────────────────
   const [vpSize, setVpSize] = useState({
     w: window.innerWidth,
     h: window.innerHeight,
   });
 
   useEffect(() => {
-    const handler = () =>
-      setVpSize({ w: window.innerWidth, h: window.innerHeight });
+    const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
   }, []);
 
-  // ── Derived tile ──────────────────────────────────────────────────────────
+  const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  const tile = focusedId ? getTile(focusedId) : null;
-
-  // ── Dimension calculation ─────────────────────────────────────────────────
   const { finalWidth, finalHeight } = useMemo(() => {
     if (!tile) return { finalWidth: 0, finalHeight: 0 };
 
-    const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size];
+    const ratio = tile.ratio || 1;
     const maxW = vpSize.w - SIDE_PAD;
     const maxH = vpSize.h - CHROME_PADDING;
 
-    const heightIfMaxWidth = maxW / aspectWH;
+    let w = maxW;
+    let h = w / ratio;
 
-    if (heightIfMaxWidth > maxH) {
-      return { finalWidth: maxH * aspectWH, finalHeight: maxH };
+    if (h > maxH) {
+      h = maxH;
+      w = h * ratio;
     }
-    return { finalWidth: maxW, finalHeight: heightIfMaxWidth };
+
+    if (tile.naturalWidth && w > tile.naturalWidth) {
+      w = tile.naturalWidth;
+      h = w / ratio;
+    }
+
+    return { finalWidth: w, finalHeight: h };
   }, [tile, vpSize]);
 
-  // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -110,15 +112,14 @@ export default function FocusView() {
     if (mobile) {
       gsap.set(inner, { opacity: 0 });
       source.style.visibility = '';
-
       gsap.killTweensOf(source);
       gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
-      const dx = dstRect.left + dstRect.width  / 2 - (srcRect.left + srcRect.width  / 2);
-      const dy = dstRect.top  + dstRect.height / 2 - (srcRect.top  + srcRect.height / 2);
-      const sx = dstRect.width  / srcRect.width;
+      const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
+      const dy = dstRect.top + dstRect.height / 2 - (srcRect.top + srcRect.height / 2);
+      const sx = dstRect.width / srcRect.width;
       const sy = dstRect.height / srcRect.height;
 
       openTlRef.current = gsap.to(source, {
@@ -137,14 +138,13 @@ export default function FocusView() {
       });
     } else {
       source.style.visibility = 'hidden';
-
       if (isHover) playVideo();
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
-      const dx    = srcRect.left + srcRect.width  / 2 - (dstRect.left + dstRect.width  / 2);
-      const dy    = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
-      const scaleX = srcRect.width  / dstRect.width;
+      const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
+      const dy = srcRect.top + srcRect.height / 2 - (dstRect.top + dstRect.height / 2);
+      const scaleX = srcRect.width / dstRect.width;
       const scaleY = srcRect.height / dstRect.height;
 
       openTlRef.current = gsap.fromTo(
@@ -187,7 +187,6 @@ export default function FocusView() {
     closeTlRef.current?.kill();
 
     source.style.visibility = '';
-
     void source.offsetWidth;
 
     const currentScaleX = Number(gsap.getProperty(inner, 'scaleX')) || 1;
@@ -196,9 +195,9 @@ export default function FocusView() {
     const srcRect = source.getBoundingClientRect();
     const dstRect = inner.getBoundingClientRect();
 
-    const dx = srcRect.left + srcRect.width  / 2 - (dstRect.left + dstRect.width  / 2);
-    const dy = srcRect.top  + srcRect.height / 2 - (dstRect.top  + dstRect.height / 2);
-    const sx = srcRect.width  / (dstRect.width  / currentScaleX);
+    const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
+    const dy = srcRect.top + srcRect.height / 2 - (dstRect.top + dstRect.height / 2);
+    const sx = srcRect.width / (dstRect.width / currentScaleX);
     const sy = srcRect.height / (dstRect.height / currentScaleY);
 
     gsap.killTweensOf(source);
@@ -219,7 +218,6 @@ export default function FocusView() {
     return () => { closeTlRef.current?.kill(); };
   }, [isClosing, source, finishClose]);
 
-  // ── Keyboard dismiss ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!focusedId || isClosing) return;
     const handler = (e) => { if (e.key === 'Escape') setFocusedId(null); };
@@ -231,18 +229,18 @@ export default function FocusView() {
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
-    const inner     = innerRef.current;
+    const inner = innerRef.current;
     if (!container || !inner) return;
 
     const onWheel = (e) => {
       if (!openDoneRef.current) return;
       e.preventDefault();
 
-      const dims     = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH     = (window.innerHeight - 256) / dims.h;
-      const maxW     = (window.innerWidth  - SIDE_PAD) / dims.w;
+      const dims = scaleRef._dims ?? inner.getBoundingClientRect();
+      const maxH = (window.innerHeight - 256) / dims.h;
+      const maxW = (window.innerWidth - SIDE_PAD) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
-      const next     = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
+      const next = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
       if (next === scaleRef.current) {
         const atMax = e.deltaY < 0 && next >= maxScale - 0.001;
@@ -250,10 +248,10 @@ export default function FocusView() {
         if ((atMax || atMin) && !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
           snapAnimRef.current = gsap.timeline()
             .to(inner, { x: -16, duration: 0.06, ease: 'power2.out' })
-            .to(inner, { x:  16, duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x:  -8, duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x:   8, duration: 0.08, ease: 'power2.inOut' })
-            .to(inner, { x:   0, duration: 0.1,  ease: 'power2.out' });
+            .to(inner, { x: 16, duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: -8, duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: 8, duration: 0.08, ease: 'power2.inOut' })
+            .to(inner, { x: 0, duration: 0.1, ease: 'power2.out' });
         }
         return;
       }
@@ -272,6 +270,7 @@ export default function FocusView() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [focusedId, isHover]);
 
+
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
@@ -283,17 +282,15 @@ export default function FocusView() {
       aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{
-        pointerEvents: isMobileRef.current ? 'none' : 'auto',
-      }}
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          width:           `${finalWidth}px`,
-          height:          `${finalHeight}px`,
+          width: `${finalWidth}px`,
+          height: `${finalHeight}px`,
           backgroundColor: tileColor(tile),
         }}
       >
@@ -305,7 +302,7 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+                className="pointer-events-none absolute inset-0 size-full object-contain"
               />
             )}
             <video
@@ -316,7 +313,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-cover"
+              className="relative size-full object-contain"
             />
           </>
         ) : (
@@ -324,7 +321,7 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            className="size-full object-cover"
+            className="size-full object-contain"
           />
         )}
       </div>
