@@ -35,21 +35,6 @@ export default function FocusView() {
   const isMobileRef  = useRef(false);
 
   const [vpSize, setVpSize] = useState({
-    w: window.innerWidth,
-    h: window.innerHeight,
-  });
-
-  useEffect(() => {
-    const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', handler);
-    window.addEventListener('orientationchange', handler);
-    return () => {
-      window.removeEventListener('resize', handler);
-      window.removeEventListener('orientationchange', handler);
-    };
-  }, []);
-  
-  const [vpSize, setVpSize] = useState({
     w: typeof window !== 'undefined' ? window.innerWidth : 1280,
     h: typeof window !== 'undefined' ? window.innerHeight : 720,
   });
@@ -61,8 +46,8 @@ export default function FocusView() {
     };
 
 
-    handler(); 
-
+    useEffect(() => {
+    const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', handler);
     window.addEventListener('orientationchange', handler);
     return () => {
