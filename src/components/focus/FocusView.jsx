@@ -5,17 +5,17 @@ import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { tileColor } from '../../utils/color';
 
-const OPEN_DUR = 0.7;
-const OPEN_EASE = 'power2.inOut';
-const CLOSE_DUR = 0.7;
-const CLOSE_EASE = 'power2.inOut';
-const CHROME_PADDING = 224; // safe area for top/bottom chrome
-const SIDE_PAD = 64; // horizontal padding
+const OPEN_DUR          = 0.7;
+const OPEN_EASE         = 'power2.inOut';
+const CLOSE_DUR         = 0.7;
+const CLOSE_EASE        = 'power2.inOut';
+const CHROME_PADDING    = 224;
+const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
-const VIDEO_DELAY_MS = 120;
+const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
-const SNAP_EASE = 'elastic.out(1, 0.5)';
-const MIN_SCALE = 1;
+const SNAP_EASE         = 'elastic.out(1, 0.5)';
+const MIN_SCALE         = 1;
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -23,21 +23,21 @@ export default function FocusView() {
   const isHover = useHoverDevice();
 
   const containerRef = useRef(null);
-  const innerRef = useRef(null);
-  const videoRef = useRef(null);
-  const scaleRef = useRef(1);
+  const innerRef     = useRef(null);
+  const videoRef     = useRef(null);
+  const scaleRef     = useRef(1);
   const scaleAnimRef = useRef(null);
-  const snapAnimRef = useRef(null);
-  const openTlRef = useRef(null);
-  const closeTlRef = useRef(null);
-  const videoTimer = useRef(0);
-  const openDoneRef = useRef(false);
-  const isMobileRef = useRef(false);
+  const snapAnimRef  = useRef(null);
+  const openTlRef    = useRef(null);
+  const closeTlRef   = useRef(null);
+  const videoTimer   = useRef(0);
+  const openDoneRef  = useRef(false);
+  const isMobileRef  = useRef(false);
 
-  const [vpSize, setVpSize] = useState(() => ({
-    w: typeof window !== 'undefined' ? window.innerWidth : 1024,
-    h: typeof window !== 'undefined' ? window.innerHeight : 768,
-  }));
+  const [vpSize, setVpSize] = useState({
+    w: window.innerWidth,
+    h: window.innerHeight,
+  });
 
   useEffect(() => {
     const handler = () => setVpSize({ w: window.innerWidth, h: window.innerHeight });
@@ -54,34 +54,24 @@ export default function FocusView() {
   const { finalWidth, finalHeight } = useMemo(() => {
     if (!tile) return { finalWidth: 0, finalHeight: 0 };
 
-    // Prefer stored ratio (width/height). If not present, assume 1.
-    const ratio = tile.ratio && tile.ratio > 0 ? tile.ratio : 1;
+    const ratio = tile.ratio || 1;
+    const maxW = vpSize.w - SIDE_PAD;
+    const maxH = vpSize.h - CHROME_PADDING;
 
-    const maxW = Math.max(1, vpSize.w - SIDE_PAD);
-    const maxH = Math.max(1, vpSize.h - CHROME_PADDING);
-
-    // Fit using "contain" logic
     let w = maxW;
-    let h = Math.round(w / ratio);
+    let h = w / ratio;
 
     if (h > maxH) {
       h = maxH;
-      w = Math.round(h * ratio);
+      w = h * ratio;
     }
 
-    // Clamp to natural size to avoid upscaling beyond natural dims (if available)
-    if (tile.naturalWidth && tile.naturalHeight) {
-      if (w > tile.naturalWidth) {
-        w = tile.naturalWidth;
-        h = Math.round(w / ratio);
-      }
-      if (h > tile.naturalHeight) {
-        h = tile.naturalHeight;
-        w = Math.round(h * ratio);
-      }
+    if (tile.naturalWidth && w > tile.naturalWidth) {
+      w = tile.naturalWidth;
+      h = w / ratio;
     }
 
-    return { finalWidth: Math.max(1, w), finalHeight: Math.max(1, h) };
+    return { finalWidth: w, finalHeight: h };
   }, [tile, vpSize]);
 
   const playVideo = useCallback(() => {
@@ -103,7 +93,7 @@ export default function FocusView() {
     }
   }, [isHover, playVideo]);
 
-  // OPEN animation
+  // ── OPEN ──────────────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (!focusedId || !source) return;
     const inner = innerRef.current;
@@ -120,10 +110,8 @@ export default function FocusView() {
     isMobileRef.current = mobile;
 
     if (mobile) {
-      // On mobile, animate the source element into place for better UX
       gsap.set(inner, { opacity: 0 });
       source.style.visibility = '';
-
       gsap.killTweensOf(source);
       gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
@@ -184,7 +172,7 @@ export default function FocusView() {
     };
   }, [focusedId, source]);
 
-  // CLOSE animation
+  // ── CLOSE ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isClosing) return;
     clearTimeout(videoTimer.current);
@@ -230,7 +218,6 @@ export default function FocusView() {
     return () => { closeTlRef.current?.kill(); };
   }, [isClosing, source, finishClose]);
 
-  // Escape key to dismiss
   useEffect(() => {
     if (!focusedId || isClosing) return;
     const handler = (e) => { if (e.key === 'Escape') setFocusedId(null); };
@@ -238,7 +225,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // Wheel zoom (desktop hover only)
+  // ── Wheel zoom ───────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -283,6 +270,8 @@ export default function FocusView() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [focusedId, isHover]);
 
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
   return (
@@ -313,7 +302,7 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }}
+                className="pointer-events-none absolute inset-0 size-full object-contain"
               />
             )}
             <video
@@ -324,7 +313,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }}
+              className="relative size-full object-contain"
             />
           </>
         ) : (
@@ -332,7 +321,7 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }}
+            className="size-full object-contain"
           />
         )}
       </div>
