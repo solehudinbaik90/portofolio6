@@ -21,6 +21,7 @@ export function TileProvider({ children }) {
   const { category } = usePopup();
 
   const [tiles, setTiles] = useState([]);
+  const [tilesById, setTilesById] = useState(new Map());
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [nonce, setNonce] = useState(0);
@@ -45,16 +46,17 @@ export function TileProvider({ children }) {
 
     Promise.all(
       ALL_TILES.map(async (tile) => {
-        const size = await detectSize(tile.media);
+        const { size, width, height } = await detectMedia(tile.media);
         if (!cancelled) {
           loaded++;
           setProgress(loaded / total);
         }
-        return { ...tile, size };
+        return { ...tile, size, naturalWidth: width, naturalHeight: height };
       })
     ).then((result) => {
       if (!cancelled) {
         setTiles(shuffled(result));
+        setTilesById(new Map(result.map((t) => [t.id, t])));
         setReady(true);
       }
     });
@@ -103,6 +105,7 @@ export function TileProvider({ children }) {
         ready,
         chromeRevealed,
         revealChrome,
+        tilesById,
       }}
     >
       {children}
