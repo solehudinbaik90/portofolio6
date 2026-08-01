@@ -1,7 +1,7 @@
 const _imgCache = [];
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-function detectImageDims(src) {
+export function detectImageDims(src) {
   const img = new Image();
   img.decoding = 'sync';
   img.src = src;
@@ -15,7 +15,7 @@ function detectImageDims(src) {
 }
 
 /** @returns {Promise<{width: number, height: number} | null>} */
-function detectVideoDims(media) {
+export function detectVideoDims(media) {
   if (media.posterSrc) return detectImageDims(media.posterSrc);
   return new Promise((resolve) => {
     const v = document.createElement('video');
@@ -42,6 +42,15 @@ export function dimsToSize(width, height) {
   }
   return 'md';
 }
+
+
+export async function detectMedia(media) {
+  const dims =
+    media.kind === 'video' ? await detectVideoDims(media) : await detectImageDims(media.src);
+  if (!dims?.width || !dims?.height) return { size: 'sq', width: null, height: null };
+  return { size: dimsToSize(dims.width, dims.height), width: dims.width, height: dims.height };
+}
+
 
 /** @returns {Promise<string>} */
 export async function detectSize(media) {
