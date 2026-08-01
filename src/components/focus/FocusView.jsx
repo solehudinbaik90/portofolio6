@@ -48,30 +48,75 @@ export default function FocusView() {
       window.removeEventListener('orientationchange', handler);
     };
   }, []);
+  
+  const [vpSize, setVpSize] = useState({
+    w: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    h: typeof window !== 'undefined' ? window.innerHeight : 720,
+  });
+
+  useEffect(() => {
+    const handler = () => {
+      setVpSize({ w: window.innerWidth, h: window.innerHeight });
+      isMobileRef.current = window.innerWidth < MOBILE_BREAKPOINT;
+    };
+
+
+    handler(); 
+
+    window.addEventListener('resize', handler);
+    window.addEventListener('orientationchange', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+      window.removeEventListener('orientationchange', handler);
+    };
+  }, []);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
   const { finalWidth, finalHeight } = useMemo(() => {
     if (!tile) return { finalWidth: 0, finalHeight: 0 };
 
-    const ratio = tile.ratio || 1;
+    const naturalW = tile.naturalWidth;
+    const naturalH = tile.naturalHeight;
+
+    if (!naturalW || !naturalH) {
+      const fallbackRatio = tile.ratio || 1;
+      const maxW = vpSize.w - SIDE_PAD;
+      const maxH = vpSize.h - CHROME_PADDING;
+      const viewportRatio = maxW / maxH;
+      
+      let w = maxW;
+      let h = w / fallbackRatio;
+      if (h > maxH) {
+        h = maxH;
+        w = h * fallbackRatio;
+      }
+      return { finalWidth: Math.round(w), finalHeight: Math.round(h) };
+    }
+
     const maxW = vpSize.w - SIDE_PAD;
     const maxH = vpSize.h - CHROME_PADDING;
 
-    let w = maxW;
-    let h = w / ratio;
+    const scaleX = maxW / naturalW;
+    const scaleY = maxH / naturalH;
 
-    if (h > maxH) {
-      h = maxH;
-      w = h * ratio;
+    let maxIntegerScale = Math.floor(Math.min(scaleX, scaleY));
+
+    if (maxIntegerScale < 1) {
+      const fallbackScale = Math.min(scaleX, scaleY);
+      return {
+        finalWidth: Math.round(naturalW * fallbackScale),
+        finalHeight: Math.round(naturalH * fallbackScale)
+      };
     }
 
-    if (tile.naturalWidth && w > tile.naturalWidth) {
-      w = tile.naturalWidth;
-      h = w / ratio;
-    }
+    const w = naturalW * maxIntegerScale;
+    const h = naturalH * maxIntegerScale;
 
-    return { finalWidth: w, finalHeight: h };
+    return { 
+      finalWidth: Math.round(w), 
+      finalHeight: Math.round(h) 
+    };
   }, [tile, vpSize]);
 
   const playVideo = useCallback(() => {
