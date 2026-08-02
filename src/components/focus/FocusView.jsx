@@ -37,25 +37,6 @@ export default function FocusView() {
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
-
-
-
-  // ── Orientasi saat resize  ─────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsViewportLandscape(window.innerWidth > window.innerHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
     const v = videoRef.current;
