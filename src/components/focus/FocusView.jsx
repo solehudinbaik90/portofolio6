@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
@@ -6,17 +6,48 @@ import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
-const OPEN_DUR          = 0.7;
-const OPEN_EASE         = 'power2.inOut';
-const CLOSE_DUR         = 0.7;
-const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 224;
-const SIDE_PAD          = 64;
+const OPEN_DUR  = 0.7;
+const OPEN_EASE = 'power2.inOut';
+const CLOSE_DUR  = 0.7;
+const CLOSE_EASE = 'power2.inOut';
+const SIDE_PAD            = 64;
+const CHROME_PADDING      = 224;
+const ZOOM_CHROME_PADDING = 256;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
 const MIN_SCALE         = 1;
+
+function getPreferredFocusWidth(viewportWidth, isLandscapeTile) {
+  if (isLandscapeTile) {
+    if (viewportWidth >= 1920) return 1080;
+    if (viewportWidth >= 1280) return 800;
+    if (viewportWidth >= 768) return 640;
+    return 480;
+  }
+  if (viewportWidth >= 1920) return 720;
+  if (viewportWidth >= 1280) return 560;
+  if (viewportWidth >= 768) return 480;
+  return 320;
+}
+
+function computeFocusSize(aspectWH, isLandscapeTile) {
+  if (typeof window === 'undefined') return { width: 0, height: 0 };
+
+  const vw = window.innerWidth;
+
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+
+  const availW = Math.max(0, vw - SIDE_PAD);
+  const availH = Math.max(0, vh - CHROME_PADDING);
+  const preferredW = getPreferredFocusWidth(vw, isLandscapeTile);
+
+  const width = Math.max(0, Math.min(preferredW, availW, availH * aspectWH));
+  const height = width / aspectWH;
+
+  return { width, height };
+}
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -36,6 +67,20 @@ export default function FocusView() {
   const isMobileRef  = useRef(false);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
+
+  const [, forceRecalc] = useState(0);
+
+  useEffect(() => {
+    const handleViewportChange = () => forceRecalc((n) => n + 1);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', handleViewportChange);
+    window.visualViewport?.addEventListener('resize', handleViewportChange);
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+    };
+  }, []);
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -96,6 +141,7 @@ export default function FocusView() {
           gsap.set(inner, { opacity: 1, x: 0, y: 0, scale: 1 });
           if (containerRef.current) containerRef.current.style.pointerEvents = 'auto';
           openDoneRef.current = true;
+          scaleRef._dims = { w: inner.offsetWidth, h: inner.offsetHeight };
           schedulePlay();
         },
       });
@@ -121,8 +167,7 @@ export default function FocusView() {
             if (!isHover) schedulePlay();
             scaleRef.current = 1;
             openDoneRef.current = true;
-            const r = inner.getBoundingClientRect();
-            scaleRef._dims = { w: r.width, h: r.height };
+            scaleRef._dims = { w: dstRect.width, h: dstRect.height };
           },
         }
       );
@@ -188,7 +233,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // ── Wheel zoom ──────────────────────────────────────
+  // ── Wheel zoom ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -200,7 +245,7 @@ export default function FocusView() {
       e.preventDefault();
 
       const dims = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH = (window.innerHeight - 256) / dims.h;
+      const maxH = (window.innerHeight - ZOOM_CHROME_PADDING) / dims.h;
       const maxW = (window.innerWidth - SIDE_PAD) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
       const next = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
@@ -238,9 +283,7 @@ export default function FocusView() {
 
   const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
-
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+  const { width, height } = computeFocusSize(aspectWH, isLandscape);
 
   return (
     <div
@@ -258,7 +301,7 @@ export default function FocusView() {
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
           width,
-          aspectRatio: `${aspectWH}`,
+          height,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
