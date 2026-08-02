@@ -253,7 +253,7 @@ export default function FocusView() {
       style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto',
         paddingLeft: SIDE_PAD,
         paddingRight: SIDE_PAD,
-        paddingTop: typeof window !== 'undefined' && window.innerWidth > window.innerHeight ? '500px' : '0px',
+        paddingTop: typeof window !== 'undefined' && window.innerWidth > window.innerHeight ? '333px' : '0px',
     paddingBottom: typeof window !== 'undefined' && window.innerWidth > window.innerHeight ? '500px' : '0px',
       }}
     >
