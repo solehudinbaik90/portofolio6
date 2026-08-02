@@ -233,74 +233,75 @@ export default function FocusView() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [focusedId, isHover]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  if (!focusedId || !tile) return null;
+// ── Render ────────────────────────────────────────────────────────────────
+    if (!focusedId || !tile) return null;
+    const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+    const isLandscape = tile.size === 'ws' || tile.size === 'ls';
+    const focusVar = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+    const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD * 2}px), calc((100vh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
-  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
-
-  return (
+    return (
     <div
       ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto',
-        paddingLeft: SIDE_PAD,
-        paddingRight: SIDE_PAD,
-        paddingTop: SIDE_PAD,
-        paddingBottom: SIDE_PAD,
+    className="fixed inset-0 z-10 flex items-center justify-center"
+    style={{
+      pointerEvents: isMobileRef.current ? 'none' : 'auto',
+      paddingLeft: SIDE_PAD,
+      paddingRight: SIDE_PAD,
+      paddingTop: !isMobileRef.current ? `${SIDE_PAD}px` : '0px',
+      paddingBottom: !isMobileRef.current ? `${SIDE_PAD}px` : '0px',
+      boxSizing: 'border-box',
+    }}
+  >
+    <div
+      ref={innerRef}
+      onClick={(e) => e.stopPropagation()}
+      className="relative overflow-hidden rounded-lg will-change-transform"
+      style={{
+        width,
+        aspectRatio: `${aspectWH}`,
+        backgroundColor: tileColor(tile),
+        maxHeight: '100%',
+        ...(isMobileRef.current ? { opacity: 0 } : undefined),
       }}
     >
-      <div
-        ref={innerRef}
-        onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
-        style={{
-          width,
-          aspectRatio: `${aspectWH}`,
-          backgroundColor: tileColor(tile),
-          ...(isMobileRef.current ? { opacity: 0 } : undefined),
-        }}
-      >
-        {tile.media.kind === 'video' ? (
-          <>
-            {tile.media.posterSrc && (
-              <img
-                src={tile.media.posterSrc}
-                alt=""
-                aria-hidden
-                draggable={false}
-                decoding={isMobileRef.current ? 'sync' : undefined}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
-              />
-            )}
-            <video
-              ref={videoRef}
-              src={tile.media.src}
-              autoPlay={isHover}
-              preload="auto"
-              loop
-              muted
-              playsInline
-              className="relative size-full object-cover"
+      {tile.media.kind === 'video' ? (
+        <>
+          {tile.media.posterSrc && (
+            <img
+              src={tile.media.posterSrc}
+              alt=""
+              aria-hidden
+              draggable={false}
+              decoding={isMobileRef.current ? 'sync' : undefined}
+              className="pointer-events-none absolute inset-0 size-full object-contain"
             />
-          </>
-        ) : (
-          <img
+          )}
+          <video
+            ref={videoRef}
             src={tile.media.src}
-            alt=""
-            draggable={false}
-            decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-cover"
+            autoPlay={isHover}
+            preload="auto"
+            loop
+            muted
+            playsInline
+            className="relative size-full object-contain"
           />
-        )}
-      </div>
+        </>
+      ) : (
+        <img
+          src={tile.media.src}
+          alt=""
+          draggable={false}
+          decoding={isMobileRef.current ? 'sync' : undefined}
+          className="size-full object-contain"
+        />
+      )}
     </div>
-  );
-}
+  </div>
+);
