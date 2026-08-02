@@ -34,8 +34,28 @@ export default function FocusView() {
   const videoTimer   = useRef(0);
   const openDoneRef  = useRef(false);
   const isMobileRef  = useRef(false);
+    const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  const tile = focusedId ? tilesById.get(focusedId) : null;
+  const [isViewportLandscape, setIsViewportLandscape] = useState(
+    window.innerWidth > window.innerHeight
+  );
+
+
+  // ── Orientasi saat resize  ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsViewportLandscape(window.innerWidth > window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -236,11 +256,14 @@ export default function FocusView() {
   // ── Render ────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
-  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const widthVar = isViewportLandscape 
+    ? 'var(--tile-focus-w-landscape)' 
+    : 'var(--tile-focus-w)';
 
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+  const maxWVar = isViewportLandscape 
+    ? 'var(--tile-focus-max-w-landscape)' 
+    : 'var(--tile-focus-max-w)';
 
   return (
     <div
@@ -249,15 +272,16 @@ export default function FocusView() {
       aria-modal="true"
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center"
+      className="fixed inset-0 z-10 flex items-center justify-center bg-black/90 backdrop-blur-sm"
       style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
+        className="relative overflow-hidden rounded-2xl will-change-transform shadow-2xl"
         style={{
-          width,
+          width: `min(${widthVar}, ${maxWVar}, calc(100dvw - ${SIDE_PAD * 2}px))`,
+          maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
           aspectRatio: `${aspectWH}`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
@@ -283,7 +307,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-cover"
+              className="relative size-full object-contain"
             />
           </>
         ) : (
@@ -292,7 +316,7 @@ export default function FocusView() {
             alt=""
             draggable={false}
             decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-cover"
+            className="size-full object-contain"
           />
         )}
       </div>
