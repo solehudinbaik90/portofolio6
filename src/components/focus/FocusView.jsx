@@ -265,8 +265,8 @@ export default function FocusView() {
     ? 'var(--tile-focus-max-w-landscape)' 
     : 'var(--tile-focus-max-w)';
 
-  const width = `min(${widthVar}, ${maxWVar}, calc(100dvw - ${SIDE_PAD * 2}px))', maxHeight: `calc(100dvh - ${CHROME_PADDING}px) ))`;
-
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+  
   return (
     <div
       ref={containerRef}
