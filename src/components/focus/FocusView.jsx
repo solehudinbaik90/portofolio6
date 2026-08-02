@@ -13,7 +13,8 @@ const CLOSE_EASE        = 'power2.inOut';
 const CHROME_PADDING    = 224;
 const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
-const V_PAD_LANDSCAPE   = 50;
+// user requested huge vertical pad for landscape — set to 1_000_000
+const V_PAD_LANDSCAPE   = 1000000;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
@@ -52,7 +53,13 @@ export default function FocusView() {
     };
   }, []);
 
-  const V_PAD = isLandscape ? V_PAD_LANDSCAPE : 0;
+  // Clamp requested V_PAD so layout stays usable:
+  // requested = V_PAD_LANDSCAPE when landscape, else 0
+  // maxAllowed = floor(viewportHeight / 2) - 1 (so we never consume whole viewport)
+  const requestedVPad = isLandscape ? V_PAD_LANDSCAPE : 0;
+  const viewportH = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const maxAllowed = Math.max(0, Math.floor(viewportH / 2) - 1);
+  const V_PAD = Math.min(requestedVPad, maxAllowed);
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
