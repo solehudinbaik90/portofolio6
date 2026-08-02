@@ -11,7 +11,7 @@ const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
 const CHROME_PADDING    = 224;
-const SIDE_PAD          = 10;
+const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -243,26 +243,19 @@ export default function FocusView() {
   const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
-  <div
-    ref={containerRef}
-    role="dialog"
-    aria-modal="true"
-    aria-label={tile.title ?? tile.id}
-    onClick={() => setFocusedId(null)}
-    className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-    style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
-  >
     <div
-      style={{ 
-        width, 
-        aspectRatio: `${aspectWH}`,
-      }}
-      className="flex items-center justify-center size-full"
-    >
+     ref={containerRef}
+     role="dialog"
+     aria-modal="true"
+     aria-label={tile.title ?? tile.id}
+     onClick={() => setFocusedId(null)}
+     className="fixed inset-0 z-10 flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+     style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform size-full"
+        className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
@@ -302,7 +295,5 @@ export default function FocusView() {
         )}
       </div>
     </div>
-  </div>
-);
-
+  );
 }
