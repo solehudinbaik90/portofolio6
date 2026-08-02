@@ -16,8 +16,10 @@
   --background: #f1f1f1;
   --foreground: #000;
   --font-display: "Tausend Soft", system-ui, sans-serif;
-  --tile-focus-w: 320px;
-  --tile-focus-w-landscape: 480px;
+  --tile-focus-w: 92vw;
+  --tile-focus-w-landscape: 88vw;
+  --tile-focus-max-w: 720px;
+  --tile-focus-max-w-landscape: 1080px;
   --col-width-base: 216px;
   --col-width-md: 360px;
   --col-width-xl: 480px;
@@ -36,17 +38,34 @@
   --scrollbar-thumb-margin: 2px;
 }
 
+/* Mobile Portrait */
+@media (max-width: 767px) and (orientation: portrait) {
+  :root {
+    --tile-focus-w: 92vw;
+    --tile-focus-w-landscape: 85vw;
+  }
+}
+
+/* Mobile Landscape */
+@media (max-width: 767px) and (orientation: landscape) {
+  :root {
+    --tile-focus-w: 88vw;
+    --tile-focus-w-landscape: 82vw;
+  }
+}
+
+/* Tablet & Desktop */
 @media (min-width: 768px) {
   :root {
-    --tile-focus-w: 480px;
-    --tile-focus-w-landscape: 640px;
+    --tile-focus-w: 520px;
+    --tile-focus-w-landscape: 680px;
   }
 }
 
 @media (min-width: 1280px) {
   :root {
-    --tile-focus-w: 560px;
-    --tile-focus-w-landscape: 800px;
+    --tile-focus-w: 580px;
+    --tile-focus-w-landscape: 820px;
   }
 }
 
