@@ -1,9 +1,9 @@
-import { useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { TILE_ASPECT_RATIOS_WH, TILE_ASPECT_CLASSES } from '../../utils/layout';
+import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
 const OPEN_DUR          = 0.7;
@@ -36,22 +36,6 @@ export default function FocusView() {
   const isMobileRef  = useRef(false);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
-
-  // detect orientation (minimal, triggers re-render on rotate)
-  const [isLandscape, setIsLandscape] = useState(
-    typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
-  );
-  useEffect(() => {
-    const onResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-    };
-  }, []);
-
-  const V_PAD = isLandscape ? 20 : 0;
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -86,7 +70,7 @@ export default function FocusView() {
 
     gsap.set(inner, { clearProps: 'all' });
 
-    const mobile = typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false;
+    const mobile = window.innerWidth < MOBILE_BREAKPOINT;
     isMobileRef.current = mobile;
 
     if (mobile) {
@@ -148,7 +132,7 @@ export default function FocusView() {
       openTlRef.current?.kill();
       clearTimeout(videoTimer.current);
     };
-  }, [focusedId, source, V_PAD]);
+  }, [focusedId, source]);
 
   // ── CLOSE ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -194,7 +178,7 @@ export default function FocusView() {
     });
 
     return () => { closeTlRef.current?.kill(); };
-  }, [isClosing, source, finishClose, V_PAD]);
+  }, [isClosing, source, finishClose]);
 
   // ── Keyboard dismiss ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -260,56 +244,58 @@ export default function FocusView() {
 
   return (
     <div
-        ref={containerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={tile.title ?? tile.id}
-        onClick={() => setFocusedId(null)}
-        className="fixed inset-0 z-10 flex items-center justify-center"
-        style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={tile.title ?? tile.id}
+      onClick={() => setFocusedId(null)}
+      className="fixed inset-0 z-10 flex items-center justify-center"
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+    >
+      <div
+        ref={innerRef}
+        onClick={(e) => e.stopPropagation()}
+        className="relative overflow-hidden rounded-lg will-change-transform"
+        style={{
+          width,
+          aspectRatio: `${aspectWH}`,
+          backgroundColor: tileColor(tile),
+          ...(isMobileRef.current ? { opacity: 0 } : undefined),
+        }}
       >
-        <div
-          ref={innerRef}
-          onClick={(e) => e.stopPropagation()}
-          className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
-          style={{
-            width,
-            backgroundColor: tileColor(tile),
-          }}
-        >
-          {tile.media.kind === 'video' ? (
-            <>
-              {tile.media.posterSrc && (
-                <img
-                  src={tile.media.posterSrc}
-                  alt=""
-                  aria-hidden
-                  draggable={false}
-                  decoding={isMobileRef.current ? 'sync' : undefined}
-                  className="pointer-events-none absolute inset-0 size-full object-contain"
-                />
-              )}
-              <video
-                ref={videoRef}
-                src={tile.media.src}
-                autoPlay={isHover}
-                preload="auto"
-                loop
-                muted
-                playsInline
-                className="relative size-full object-contain"
+        {tile.media.kind === 'video' ? (
+          <>
+            {tile.media.posterSrc && (
+              <img
+                src={tile.media.posterSrc}
+                alt=""
+                aria-hidden
+                draggable={false}
+                decoding={isMobileRef.current ? 'sync' : undefined}
+                className="pointer-events-none absolute inset-0 size-full object-cover"
               />
-            </>
-          ) : (
-            <img
+            )}
+            <video
+              ref={videoRef}
               src={tile.media.src}
-              alt=""
-              draggable={false}
-              decoding={isMobileRef.current ? 'sync' : undefined}
-              className="size-full object-contain"
+              autoPlay={isHover}
+              preload="auto"
+              loop
+              muted
+              playsInline
+              className="relative size-full object-cover"
             />
-          )}
-        </div>
+          </>
+        ) : (
+          <img
+            src={tile.media.src}
+            alt=""
+            draggable={false}
+            decoding={isMobileRef.current ? 'sync' : undefined}
+            className="size-full object-cover"
+          />
+        )}
       </div>
+    </div>
   );
 }
