@@ -253,6 +253,8 @@ export default function FocusView() {
       style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto',
         paddingLeft: SIDE_PAD,
         paddingRight: SIDE_PAD,
+        paddingTop: SIDE_PAD,
+        paddingBottom: SIDE_PAD,
       }}
     >
       <div
