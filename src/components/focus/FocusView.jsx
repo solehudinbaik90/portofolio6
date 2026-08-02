@@ -37,9 +37,7 @@ export default function FocusView() {
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
-const [isViewportLandscape, setIsViewportLandscape] = useState(
-    window.innerWidth > window.innerHeight
-  );
+
 
 
   // ── Orientasi saat resize  ─────────────────────────────────────────────────────────
