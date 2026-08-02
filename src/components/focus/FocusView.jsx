@@ -1,22 +1,22 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+// name=src/components/focus/FocusView.jsx
+import { useRef, useEffect, useLayoutEffect, useCallback, useState, useMemo } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
-const OPEN_DUR          = 0.7;
-const OPEN_EASE         = 'power2.inOut';
-const CLOSE_DUR         = 0.7;
-const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 224;
-const SIDE_PAD          = 64; // ruang di setiap sisi (kiri + kanan)
+const OPEN_DUR = 0.7;
+const OPEN_EASE = 'power2.inOut';
+const CLOSE_DUR = 0.7;
+const CLOSE_EASE = 'power2.inOut';
+const CHROME_PADDING = 224;
+const SIDE_PAD = 64; // ruang kiri + kanan (px) total = SIDE_PAD * 2
 const MOBILE_BREAKPOINT = 768;
-const VIDEO_DELAY_MS    = 120;
+const VIDEO_DELAY_MS = 120;
 const WHEEL_SCALE_SPEED = 0.002;
-const SNAP_EASE         = 'elastic.out(1, 0.5)';
-const MIN_SCALE         = 1;
+const SNAP_EASE = 'elastic.out(1, 0.5)';
+const MIN_SCALE = 1;
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -24,29 +24,62 @@ export default function FocusView() {
   const isHover = useHoverDevice();
 
   const containerRef = useRef(null);
-  const innerRef     = useRef(null);
-  const videoRef     = useRef(null);
-  const scaleRef     = useRef(1);
+  const innerRef = useRef(null);
+  const videoRef = useRef(null);
+  const scaleRef = useRef(1);
   const scaleAnimRef = useRef(null);
-  const snapAnimRef  = useRef(null);
-  const openTlRef    = useRef(null);
-  const closeTlRef   = useRef(null);
-  const videoTimer   = useRef(0);
-  const openDoneRef  = useRef(false);
-  const isMobileRef  = useRef(false);
+  const snapAnimRef = useRef(null);
+  const openTlRef = useRef(null);
+  const closeTlRef = useRef(null);
+  const videoTimer = useRef(0);
+  const openDoneRef = useRef(false);
+  const isMobileRef = useRef(false);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
-  if (!tile) return null;
 
-  // aspect ratio (width / height)
-  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  // viewport state to recompute sizes responsively
+  const [vp, setVp] = useState(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    h: typeof window !== 'undefined' ? window.innerHeight : 768,
+  }));
 
-  // PENYESUAIAN LEBAR: kurangi kedua sisi (kiri+kanan) => SIDE_PAD * 2
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD * 2}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+  useEffect(() => {
+    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
 
-  // ── Video helpers ─────────────────────────────────────────────────────────
+  // hitung ukuran final (numerik) agar inline style aman
+  const { finalWidth, finalHeight } = useMemo(() => {
+    if (!tile) return { finalWidth: 0, finalHeight: 0 };
+
+    const ratio = tile.ratio || (tile.naturalWidth && tile.naturalHeight ? tile.naturalWidth / tile.naturalHeight : 1);
+    const maxW = Math.max(0, vp.w - SIDE_PAD * 2);
+    const maxH = Math.max(0, vp.h - CHROME_PADDING);
+
+    // fit by width first, then constrain by height
+    let w = maxW;
+    let h = Math.round(w / ratio);
+
+    if (h > maxH) {
+      h = maxH;
+      w = Math.round(h * ratio);
+    }
+
+    // jangan lebih besar dari natural width
+    if (tile.naturalWidth && tile.naturalWidth > 0 && w > tile.naturalWidth) {
+      w = tile.naturalWidth;
+      h = Math.round(w / ratio);
+    }
+
+    return { finalWidth: Math.max(1, Math.round(w)), finalHeight: Math.max(1, Math.round(h)) };
+  }, [tile, vp]);
+
+  // video helpers
   const playVideo = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -58,25 +91,22 @@ export default function FocusView() {
   }, [source]);
 
   const schedulePlay = useCallback(() => {
-    if (isHover) {
-      playVideo();
-    } else {
+    if (isHover) playVideo();
+    else {
       clearTimeout(videoTimer.current);
       videoTimer.current = window.setTimeout(playVideo, VIDEO_DELAY_MS);
     }
   }, [isHover, playVideo]);
 
-  // ── OPEN ──────────────────────────────────────────────────────────────────
+  // OPEN animation
   useLayoutEffect(() => {
-    if (!focusedId || !source) return;
+    if (!focusedId || !source || !innerRef.current) return;
     const inner = innerRef.current;
-    if (!inner) return;
 
     openTlRef.current?.kill();
     closeTlRef.current?.kill();
     openDoneRef.current = false;
     scaleRef.current = 1;
-
     gsap.set(inner, { clearProps: 'all' });
 
     const mobile = window.innerWidth < MOBILE_BREAKPOINT;
@@ -97,9 +127,7 @@ export default function FocusView() {
 
       openTlRef.current = gsap.to(source, {
         x: dx, y: dy, scaleX: sx, scaleY: sy,
-        duration: OPEN_DUR,
-        ease: OPEN_EASE,
-        overwrite: 'auto',
+        duration: OPEN_DUR, ease: OPEN_EASE, overwrite: 'auto',
         onComplete: () => {
           source.style.visibility = 'hidden';
           gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
@@ -125,9 +153,7 @@ export default function FocusView() {
         { x: dx, y: dy, scaleX, scaleY },
         {
           x: 0, y: 0, scaleX: 1, scaleY: 1,
-          duration: OPEN_DUR,
-          ease: OPEN_EASE,
-          overwrite: 'auto',
+          duration: OPEN_DUR, ease: OPEN_EASE, overwrite: 'auto',
           onComplete: () => {
             if (!isHover) schedulePlay();
             scaleRef.current = 1;
@@ -143,9 +169,9 @@ export default function FocusView() {
       openTlRef.current?.kill();
       clearTimeout(videoTimer.current);
     };
-  }, [focusedId, source]);
+  }, [focusedId, source, playVideo, schedulePlay, isHover]);
 
-  // ── CLOSE ─────────────────────────────────────────────────────────────────
+  // CLOSE animation
   useEffect(() => {
     if (!isClosing) return;
     clearTimeout(videoTimer.current);
@@ -167,7 +193,6 @@ export default function FocusView() {
 
     const srcRect = source.getBoundingClientRect();
     const dstRect = inner.getBoundingClientRect();
-
     const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
     const dy = srcRect.top + srcRect.height / 2 - (dstRect.top + dstRect.height / 2);
     const sx = srcRect.width / (dstRect.width / currentScaleX);
@@ -178,9 +203,7 @@ export default function FocusView() {
 
     closeTlRef.current = gsap.to(inner, {
       x: dx, y: dy, scaleX: sx, scaleY: sy,
-      duration: CLOSE_DUR,
-      ease: CLOSE_EASE,
-      overwrite: 'auto',
+      duration: CLOSE_DUR, ease: CLOSE_EASE, overwrite: 'auto',
       onComplete: () => {
         gsap.set([source, inner], { clearProps: 'all' });
         source.style.visibility = '';
@@ -191,6 +214,7 @@ export default function FocusView() {
     return () => { closeTlRef.current?.kill(); };
   }, [isClosing, source, finishClose]);
 
+  // keyboard dismiss
   useEffect(() => {
     if (!focusedId || isClosing) return;
     const handler = (e) => { if (e.key === 'Escape') setFocusedId(null); };
@@ -198,7 +222,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // ── Wheel zoom ───────────────────────────────────────────────
+  // wheel zoom (desktop/hover)
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -232,10 +256,7 @@ export default function FocusView() {
       scaleRef.current = next;
       scaleAnimRef.current?.kill();
       scaleAnimRef.current = gsap.to(inner, {
-        scaleX: next, scaleY: next,
-        duration: 0.9,
-        ease: SNAP_EASE,
-        overwrite: 'auto',
+        scaleX: next, scaleY: next, duration: 0.9, ease: SNAP_EASE, overwrite: 'auto',
       });
     };
 
@@ -243,28 +264,30 @@ export default function FocusView() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [focusedId, isHover]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  if (!focusedId || !tile) return null;
+
   return (
     <div
       ref={containerRef}
       role="dialog"
       aria-modal="true"
-      aria-label={tile.title ?? tile.id}
+      aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto', paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}
+      style={{
+        pointerEvents: isMobileRef.current ? 'none' : 'auto',
+        paddingLeft: SIDE_PAD,
+        paddingRight: SIDE_PAD,
+      }}
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          width,
-          aspectRatio: `${aspectWH}`,
-          maxWidth: `calc(100vw - ${SIDE_PAD * 2}px)`,
-          maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
+          width: `${finalWidth}px`,
+          height: `${finalHeight}px`,
           backgroundColor: tileColor(tile),
-          ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
       >
         {tile.media.kind === 'video' ? (
@@ -275,9 +298,8 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                decoding="sync"
-                className="pointer-events-none absolute inset-0 size-full object-contain"
-                style={{ width: '100%', height: '100%' }}
+                decoding="async"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
               />
             )}
             <video
@@ -288,8 +310,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-contain"
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
             />
           </>
         ) : (
@@ -297,9 +318,8 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-contain"
-            style={{ width: '100%', height: '100%' }}
+            decoding="async"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
           />
         )}
       </div>
