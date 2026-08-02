@@ -252,7 +252,6 @@ export default function FocusView() {
      className="fixed inset-0 z-10 flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
      style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
      >
-      <div className="fixed inset-0 bg-transparent -z-10" onClick={() => setFocusedId(null)} />
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
@@ -296,6 +295,5 @@ export default function FocusView() {
         )}
       </div>
     </div>
-  </div>
   );
 }
