@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useCallback, useState, useMemo } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
 import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
@@ -6,33 +6,18 @@ import { useHoverDevice } from '../../hooks/useHoverDevice';
 import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
-const OPEN_DUR = 0.7;
-const OPEN_EASE = 'power2.inOut';
-const CLOSE_DUR = 0.7;
-const CLOSE_EASE = 'power2.inOut';
-const CHROME_PADDING = 224;
-
+const OPEN_DUR          = 0.7;
+const OPEN_EASE         = 'power2.inOut';
+const CLOSE_DUR         = 0.7;
+const CLOSE_EASE        = 'power2.inOut';
+const CHROME_PADDING    = 224;
+const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
-
-// Horizontal padding (per-side)
-const SIDE_PAD_DESKTOP = 64; // left/right on desktop
-const SIDE_PAD_MOBILE = 24; // left/right on mobile
-
-// Vertical padding (top/bottom)
-const // portrait baseline
-  V_PAD_PORTRAIT_MOBILE = 24,
-  V_PAD_PORTRAIT_DESKTOP = 24;
-// landscape special padding
-const V_PAD_LANDSCAPE_MOBILE = 20; // you asked 20px for mobile landscape
-const V_PAD_LANDSCAPE_DESKTOP = 48; // more breathing room on desktop landscape
-
-// Safety factor to avoid subtle toolbar/addressbar overlays
-const SAFE_VP_FACTOR = 0.94;
-
-const VIDEO_DELAY_MS = 120;
+const V_PAD_LANDSCAPE   = 50;
+const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
-const SNAP_EASE = 'elastic.out(1, 0.5)';
-const MIN_SCALE = 1;
+const SNAP_EASE         = 'elastic.out(1, 0.5)';
+const MIN_SCALE         = 1;
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -40,51 +25,36 @@ export default function FocusView() {
   const isHover = useHoverDevice();
 
   const containerRef = useRef(null);
-  const innerRef = useRef(null);
-  const videoRef = useRef(null);
-  const scaleRef = useRef(1);
+  const innerRef     = useRef(null);
+  const videoRef     = useRef(null);
+  const scaleRef     = useRef(1);
   const scaleAnimRef = useRef(null);
-  const snapAnimRef = useRef(null);
-  const openTlRef = useRef(null);
-  const closeTlRef = useRef(null);
-  const videoTimer = useRef(0);
-  const openDoneRef = useRef(false);
-  const isMobileRef = useRef(false);
+  const snapAnimRef  = useRef(null);
+  const openTlRef    = useRef(null);
+  const closeTlRef   = useRef(null);
+  const videoTimer   = useRef(0);
+  const openDoneRef  = useRef(false);
+  const isMobileRef  = useRef(false);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  // visual viewport tracking (preferred over window.innerHeight on mobile)
-  const getVisualViewport = () => {
-    if (typeof window === 'undefined') return { w: 1024, h: 768, top: 0 };
-    const vv = window.visualViewport;
-    if (vv) return { w: vv.width, h: vv.height, top: vv.offsetTop || 0 };
-    return { w: window.innerWidth, h: window.innerHeight, top: 0 };
-  };
-
-  const [vp, setVp] = useState(getVisualViewport);
-
+  // detect orientation (minimal, triggers re-render on rotate)
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
+  );
   useEffect(() => {
-    const vv = window.visualViewport;
-    const handler = () => setVp(getVisualViewport());
-    if (vv) {
-      vv.addEventListener('resize', handler);
-      vv.addEventListener('scroll', handler);
-    } else {
-      window.addEventListener('resize', handler);
-      window.addEventListener('orientationchange', handler);
-    }
+    const onResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     return () => {
-      if (vv) {
-        vv.removeEventListener('resize', handler);
-        vv.removeEventListener('scroll', handler);
-      } else {
-        window.removeEventListener('resize', handler);
-        window.removeEventListener('orientationchange', handler);
-      }
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
     };
   }, []);
 
-  // helpers for video play synching
+  const V_PAD = isLandscape ? V_PAD_LANDSCAPE : 0;
+
+  // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -96,14 +66,15 @@ export default function FocusView() {
   }, [source]);
 
   const schedulePlay = useCallback(() => {
-    if (isHover) playVideo();
-    else {
+    if (isHover) {
+      playVideo();
+    } else {
       clearTimeout(videoTimer.current);
       videoTimer.current = window.setTimeout(playVideo, VIDEO_DELAY_MS);
     }
   }, [isHover, playVideo]);
 
-  // OPEN animation (same behavior as original)
+  // ── OPEN ──────────────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (!focusedId || !source) return;
     const inner = innerRef.current;
@@ -116,7 +87,7 @@ export default function FocusView() {
 
     gsap.set(inner, { clearProps: 'all' });
 
-    const mobile = vp.w < MOBILE_BREAKPOINT;
+    const mobile = typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false;
     isMobileRef.current = mobile;
 
     if (mobile) {
@@ -178,9 +149,9 @@ export default function FocusView() {
       openTlRef.current?.kill();
       clearTimeout(videoTimer.current);
     };
-  }, [focusedId, source, vp.w, vp.h, isHover, playVideo, schedulePlay]);
+  }, [focusedId, source, V_PAD]);
 
-  // CLOSE animation
+  // ── CLOSE ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isClosing) return;
     clearTimeout(videoTimer.current);
@@ -224,9 +195,9 @@ export default function FocusView() {
     });
 
     return () => { closeTlRef.current?.kill(); };
-  }, [isClosing, source, finishClose]);
+  }, [isClosing, source, finishClose, V_PAD]);
 
-  // keyboard dismiss
+  // ── Keyboard dismiss ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!focusedId || isClosing) return;
     const handler = (e) => { if (e.key === 'Escape') setFocusedId(null); };
@@ -234,7 +205,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // wheel zoom
+  // ── Wheel zoom ──────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -246,16 +217,15 @@ export default function FocusView() {
       e.preventDefault();
 
       const dims = scaleRef._dims ?? inner.getBoundingClientRect();
-
-      // compute max scale with safe viewport in mind
-      const safeMaxH = Math.floor(vp.h * SAFE_VP_FACTOR);
-      const maxH = (safeMaxH - 256) / dims.h;
-      const maxW = (vp.w - SIDE_PAD_DESKTOP * 2) / dims.w;
+      const maxH = (window.innerHeight - 256) / dims.h;
+      const maxW = (window.innerWidth - SIDE_PAD) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
       const next = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
       if (next === scaleRef.current) {
-        if (!snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
+        const atMax = e.deltaY < 0 && next >= maxScale - 0.001;
+        const atMin = e.deltaY > 0 && next <= MIN_SCALE + 0.001;
+        if ((atMax || atMin) && !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
           snapAnimRef.current = gsap.timeline()
             .to(inner, { x: -16, duration: 0.06, ease: 'power2.out' })
             .to(inner, { x: 16, duration: 0.08, ease: 'power2.inOut' })
@@ -278,69 +248,40 @@ export default function FocusView() {
 
     container.addEventListener('wheel', onWheel, { passive: false });
     return () => container.removeEventListener('wheel', onWheel);
-  }, [focusedId, isHover, vp]);
+  }, [focusedId, isHover]);
 
-  // ---------- Render ----------
+  // ── Render ────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
-  // aspect (width / height)
-  const aspectWH = tile.ratio ?? TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const tileIsLandscape = tile.size === 'ws' || tile.size === 'ls';
+  const focusVar    = tileIsLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  // responsive paddings
-  const isMobile = vp.w < MOBILE_BREAKPOINT;
-  const sidePad = isMobile ? SIDE_PAD_MOBILE : SIDE_PAD_DESKTOP;
-
-  const viewportIsLandscape = vp.w > vp.h;
-  const vPad = viewportIsLandscape
-    ? (isMobile ? V_PAD_LANDSCAPE_MOBILE : V_PAD_LANDSCAPE_DESKTOP)
-    : (isMobile ? V_PAD_PORTRAIT_MOBILE : V_PAD_PORTRAIT_DESKTOP);
-
-  // compute max available area (apply safety factor)
-  const safeVpH = Math.floor(vp.h * SAFE_VP_FACTOR);
-  const maxW = Math.max(0, vp.w - sidePad * 2);
-  const maxH = Math.max(0, Math.min(safeVpH - vPad * 2, vp.h - vPad * 2));
-
-  // fit image/video inside maxW x maxH while preserving aspect ratio
-  let finalW = maxW;
-  let finalH = Math.round(finalW / aspectWH);
-
-  if (finalH > maxH) {
-    finalH = maxH;
-    finalW = Math.round(finalH * aspectWH);
-  }
-
-  // don't exceed natural width (if provided)
-  if (tile.naturalWidth && tile.naturalWidth > 0 && finalW > tile.naturalWidth) {
-    finalW = tile.naturalWidth;
-    finalH = Math.round(finalW / aspectWH);
-  }
-
-  // container padding uses safe-area insets for notches
-  const containerStyle = {
-    pointerEvents: isMobileRef.current ? 'none' : 'auto',
-    paddingLeft: `${sidePad}px`,
-    paddingRight: `${sidePad}px`,
-    paddingTop: `calc(${vPad}px + env(safe-area-inset-top))`,
-    paddingBottom: `calc(${vPad}px + env(safe-area-inset-bottom))`,
-  };
+  // NOTE: reduce horizontal available space by SIDE_PAD * 2 (left + right)
+  // and reduce effective height by V_PAD * 2 (top + bottom) to ensure vertical spacing.
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD * 2}px), calc((100dvh - ${CHROME_PADDING + V_PAD * 2}px) * ${aspectWH}))`;
 
   return (
     <div
       ref={containerRef}
       role="dialog"
       aria-modal="true"
-      aria-label={tile.description ?? tile.id}
+      aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={containerStyle}
+      style={{
+        pointerEvents: isMobileRef.current ? 'none' : 'auto',
+        paddingTop: `calc(${V_PAD}px + env(safe-area-inset-top))`,
+        paddingBottom: `calc(${V_PAD}px + env(safe-area-inset-bottom))`,
+      }}
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          width: `${finalW}px`,
-          height: `${finalH}px`,
+          width,
+          aspectRatio: `${aspectWH}`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
@@ -353,8 +294,8 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                decoding="async"
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
+                decoding={isMobileRef.current ? 'sync' : undefined}
+                className="pointer-events-none absolute inset-0 size-full object-cover"
               />
             )}
             <video
@@ -365,7 +306,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+              className="relative size-full object-cover"
             />
           </>
         ) : (
@@ -373,8 +314,8 @@ export default function FocusView() {
             src={tile.media.src}
             alt=""
             draggable={false}
-            decoding="async"
-            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+            decoding={isMobileRef.current ? 'sync' : undefined}
+            className="size-full object-cover"
           />
         )}
       </div>
