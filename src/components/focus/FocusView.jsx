@@ -256,12 +256,6 @@ export default function FocusView() {
         maxHeight: typeof window !== 'undefined' && window.innerWidth > window.innerHeight 
       ? '100dvh' 
       : 'none',
-    paddingTop: typeof window !== 'undefined' && window.innerWidth > window.innerHeight 
-      ? '40px' 
-      : '0px',
-    paddingBottom: typeof window !== 'undefined' && window.innerWidth > window.innerHeight 
-      ? '40px' 
-      : '0px',
       }}
     >
       <div
