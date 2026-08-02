@@ -34,9 +34,10 @@ export default function FocusView() {
   const videoTimer   = useRef(0);
   const openDoneRef  = useRef(false);
   const isMobileRef  = useRef(false);
-    const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  const [isViewportLandscape, setIsViewportLandscape] = useState(
+  const tile = focusedId ? tilesById.get(focusedId) : null;
+
+const [isViewportLandscape, setIsViewportLandscape] = useState(
     window.innerWidth > window.innerHeight
   );
 
@@ -256,17 +257,12 @@ export default function FocusView() {
   // ── Render ────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
-  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const widthVar = isViewportLandscape 
-    ? 'var(--tile-focus-w-landscape)' 
-    : 'var(--tile-focus-w)';
-
-  const maxWVar = isViewportLandscape 
-    ? 'var(--tile-focus-max-w-landscape)' 
-    : 'var(--tile-focus-max-w)';
+  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
+  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
   const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
-  
+
   return (
     <div
       ref={containerRef}
@@ -274,13 +270,13 @@ export default function FocusView() {
       aria-modal="true"
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-10 flex items-center justify-center"
       style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-2xl will-change-transform shadow-2xl"
+        className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
           width,
           aspectRatio: `${aspectWH}`,
@@ -308,7 +304,7 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-contain"
+              className="relative size-full object-cover"
             />
           </>
         ) : (
@@ -317,7 +313,7 @@ export default function FocusView() {
             alt=""
             draggable={false}
             decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-contain"
+            className="size-full object-cover"
           />
         )}
       </div>
