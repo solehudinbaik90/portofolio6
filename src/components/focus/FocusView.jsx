@@ -11,7 +11,7 @@ const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
 const CHROME_PADDING    = 224;
-const SIDE_PAD          = 64;
+const SIDE_PAD          = 64; // ruang di setiap sisi (kiri + kanan)
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -36,6 +36,15 @@ export default function FocusView() {
   const isMobileRef  = useRef(false);
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
+  if (!tile) return null;
+
+  // aspect ratio (width / height)
+  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
+  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+
+  // PENYESUAIAN LEBAR: kurangi kedua sisi (kiri+kanan) => SIDE_PAD * 2
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD * 2}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -77,23 +86,24 @@ export default function FocusView() {
       gsap.set(inner, { opacity: 0 });
       source.style.visibility = '';
       gsap.killTweensOf(source);
-      gsap.set(source, { x: 0, y: 0, scale: 1 });
+      gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
       const srcRect = source.getBoundingClientRect();
       const dstRect = inner.getBoundingClientRect();
       const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
       const dy = dstRect.top + dstRect.height / 2 - (srcRect.top + srcRect.height / 2);
       const sx = dstRect.width / srcRect.width;
+      const sy = dstRect.height / srcRect.height;
 
       openTlRef.current = gsap.to(source, {
-        x: dx, y: dy, scale: sx,
+        x: dx, y: dy, scaleX: sx, scaleY: sy,
         duration: OPEN_DUR,
         ease: OPEN_EASE,
         overwrite: 'auto',
         onComplete: () => {
           source.style.visibility = 'hidden';
-          gsap.set(source, { x: 0, y: 0, scale: 1 });
-          gsap.set(inner, { opacity: 1, x: 0, y: 0, scale: 1 });
+          gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
+          gsap.set(inner, { opacity: 1, x: 0, y: 0, scaleX: 1, scaleY: 1 });
           if (containerRef.current) containerRef.current.style.pointerEvents = 'auto';
           openDoneRef.current = true;
           schedulePlay();
@@ -107,13 +117,14 @@ export default function FocusView() {
       const dstRect = inner.getBoundingClientRect();
       const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
       const dy = srcRect.top + srcRect.height / 2 - (dstRect.top + dstRect.height / 2);
-      const sx = srcRect.width / dstRect.width;
+      const scaleX = srcRect.width / dstRect.width;
+      const scaleY = srcRect.height / dstRect.height;
 
       openTlRef.current = gsap.fromTo(
         inner,
-        { x: dx, y: dy, scale: sx },
+        { x: dx, y: dy, scaleX, scaleY },
         {
-          x: 0, y: 0, scale: 1,
+          x: 0, y: 0, scaleX: 1, scaleY: 1,
           duration: OPEN_DUR,
           ease: OPEN_EASE,
           overwrite: 'auto',
@@ -151,22 +162,22 @@ export default function FocusView() {
     source.style.visibility = '';
     void source.offsetWidth;
 
-    const currentScale = Number(gsap.getProperty(inner, 'scale')) || 1;
+    const currentScaleX = Number(gsap.getProperty(inner, 'scaleX')) || 1;
+    const currentScaleY = Number(gsap.getProperty(inner, 'scaleY')) || 1;
 
     const srcRect = source.getBoundingClientRect();
     const dstRect = inner.getBoundingClientRect();
 
     const dx = srcRect.left + srcRect.width / 2 - (dstRect.left + dstRect.width / 2);
     const dy = srcRect.top + srcRect.height / 2 - (dstRect.top + dstRect.height / 2);
-    const sx = srcRect.width / (dstRect.width / currentScale);
+    const sx = srcRect.width / (dstRect.width / currentScaleX);
+    const sy = srcRect.height / (dstRect.height / currentScaleY);
 
     gsap.killTweensOf(source);
-    gsap.set(source, { x: 0, y: 0, scale: 1 });
+    gsap.set(source, { x: 0, y: 0, scaleX: 1, scaleY: 1 });
 
     closeTlRef.current = gsap.to(inner, {
-      x: dx,
-      y: dy,
-      scale: sx,
+      x: dx, y: dy, scaleX: sx, scaleY: sy,
       duration: CLOSE_DUR,
       ease: CLOSE_EASE,
       overwrite: 'auto',
@@ -180,7 +191,6 @@ export default function FocusView() {
     return () => { closeTlRef.current?.kill(); };
   }, [isClosing, source, finishClose]);
 
-  // ── Keyboard dismiss ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!focusedId || isClosing) return;
     const handler = (e) => { if (e.key === 'Escape') setFocusedId(null); };
@@ -188,7 +198,7 @@ export default function FocusView() {
     return () => window.removeEventListener('keydown', handler);
   }, [focusedId, isClosing, setFocusedId]);
 
-  // ── Wheel zoom ──────────────────────────────────────
+  // ── Wheel zoom ───────────────────────────────────────────────
   useEffect(() => {
     if (!focusedId || !isHover) return;
     const container = containerRef.current;
@@ -222,7 +232,7 @@ export default function FocusView() {
       scaleRef.current = next;
       scaleAnimRef.current?.kill();
       scaleAnimRef.current = gsap.to(inner, {
-        scale: next,
+        scaleX: next, scaleY: next,
         duration: 0.9,
         ease: SNAP_EASE,
         overwrite: 'auto',
@@ -234,14 +244,6 @@ export default function FocusView() {
   }, [focusedId, isHover]);
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (!focusedId || !tile) return null;
-
-  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
-
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
-
   return (
     <div
       ref={containerRef}
@@ -250,7 +252,7 @@ export default function FocusView() {
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto', paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD }}
     >
       <div
         ref={innerRef}
@@ -259,6 +261,8 @@ export default function FocusView() {
         style={{
           width,
           aspectRatio: `${aspectWH}`,
+          maxWidth: `calc(100vw - ${SIDE_PAD * 2}px)`,
+          maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
@@ -271,8 +275,9 @@ export default function FocusView() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                decoding={isMobileRef.current ? 'sync' : undefined}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+                decoding="sync"
+                className="pointer-events-none absolute inset-0 size-full object-contain"
+                style={{ width: '100%', height: '100%' }}
               />
             )}
             <video
@@ -283,7 +288,8 @@ export default function FocusView() {
               loop
               muted
               playsInline
-              className="relative size-full object-cover"
+              className="relative size-full object-contain"
+              style={{ width: '100%', height: '100%' }}
             />
           </>
         ) : (
@@ -292,7 +298,8 @@ export default function FocusView() {
             alt=""
             draggable={false}
             decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-cover"
+            className="size-full object-contain"
+            style={{ width: '100%', height: '100%' }}
           />
         )}
       </div>
