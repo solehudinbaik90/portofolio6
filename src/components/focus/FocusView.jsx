@@ -265,6 +265,8 @@ export default function FocusView() {
     ? 'var(--tile-focus-max-w-landscape)' 
     : 'var(--tile-focus-max-w)';
 
+  const width = `min(${widthVar}, ${maxWVar}, calc(100dvw - ${SIDE_PAD * 2}px))', maxHeight: `calc(100dvh - ${CHROME_PADDING}px) ))`;
+
   return (
     <div
       ref={containerRef}
@@ -280,8 +282,7 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-2xl will-change-transform shadow-2xl"
         style={{
-          width: `min(${widthVar}, ${maxWVar}, calc(100dvw - ${SIDE_PAD * 2}px))`,
-          maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
+          width,
           aspectRatio: `${aspectWH}`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
