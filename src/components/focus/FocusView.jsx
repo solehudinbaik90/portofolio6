@@ -243,20 +243,28 @@ export default function FocusView() {
   const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
+  <div
+    ref={containerRef}
+    role="dialog"
+    aria-modal="true"
+    aria-label={tile.title ?? tile.id}
+    onClick={() => setFocusedId(null)}
+    className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+  >
     <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={tile.title ?? tile.id}
-      onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      style={{ 
+        width, 
+        aspectRatio: `${aspectWH}`,
+      }}
+      className="flex items-center justify-center size-full"
     >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
-        style={{ backgroundColor: tileColor(tile),
+        className="relative overflow-hidden rounded-lg will-change-transform size-full"
+        style={{
+          backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
       >
@@ -294,5 +302,7 @@ export default function FocusView() {
         )}
       </div>
     </div>
-  );
+  </div>
+);
+
 }
