@@ -10,8 +10,10 @@ const OPEN_DUR = 0.7;
 const OPEN_EASE = 'power2.inOut';
 const CLOSE_DUR = 0.7;
 const CLOSE_EASE = 'power2.inOut';
-const CHROME_PADDING = 224;
-const SIDE_PAD = 64; // ruang kiri + kanan (px) total = SIDE_PAD * 2
+const SIDE_PAD_DESKTOP = 64; // ruang kiri/kanan default desktop
+const SIDE_PAD_MOBILE = 24;  // ruang kiri/kanan mobile
+const V_PAD_DESKTOP = 48;    // ruang atas/bawah desktop (landscape)
+const V_PAD_MOBILE = 24;     // ruang atas/bawah mobile (portrait)
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -37,7 +39,6 @@ export default function FocusView() {
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  // viewport state to recompute sizes responsively
   const [vp, setVp] = useState(() => ({
     w: typeof window !== 'undefined' ? window.innerWidth : 1024,
     h: typeof window !== 'undefined' ? window.innerHeight : 768,
@@ -53,13 +54,20 @@ export default function FocusView() {
     };
   }, []);
 
-  // hitung ukuran final (numerik) agar inline style aman
+  // responsive paddings
+  const isMobile = vp.w < MOBILE_BREAKPOINT;
+  const SIDE_PAD = isMobile ? SIDE_PAD_MOBILE : SIDE_PAD_DESKTOP;
+  // vertical pad slightly larger in landscape to give breathing room
+  const isLandscape = vp.w > vp.h;
+  const V_PAD = isMobile ? V_PAD_MOBILE : (isLandscape ? V_PAD_DESKTOP : Math.round(V_PAD_DESKTOP / 2));
+
+  // compute final numeric width/height using vertical padding
   const { finalWidth, finalHeight } = useMemo(() => {
     if (!tile) return { finalWidth: 0, finalHeight: 0 };
 
     const ratio = tile.ratio || (tile.naturalWidth && tile.naturalHeight ? tile.naturalWidth / tile.naturalHeight : 1);
     const maxW = Math.max(0, vp.w - SIDE_PAD * 2);
-    const maxH = Math.max(0, vp.h - CHROME_PADDING);
+    const maxH = Math.max(0, vp.h - V_PAD * 2);
 
     // fit by width first, then constrain by height
     let w = maxW;
@@ -70,14 +78,14 @@ export default function FocusView() {
       w = Math.round(h * ratio);
     }
 
-    // jangan lebih besar dari natural width
+    // don't exceed natural width
     if (tile.naturalWidth && tile.naturalWidth > 0 && w > tile.naturalWidth) {
       w = tile.naturalWidth;
       h = Math.round(w / ratio);
     }
 
     return { finalWidth: Math.max(1, Math.round(w)), finalHeight: Math.max(1, Math.round(h)) };
-  }, [tile, vp]);
+  }, [tile, vp, SIDE_PAD, V_PAD]);
 
   // video helpers
   const playVideo = useCallback(() => {
@@ -234,8 +242,8 @@ export default function FocusView() {
       e.preventDefault();
 
       const dims = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH = (window.innerHeight - 256) / dims.h;
-      const maxW = (window.innerWidth - SIDE_PAD) / dims.w;
+      const maxH = (window.innerHeight - V_PAD * 2) / dims.h;
+      const maxW = (window.innerWidth - SIDE_PAD * 2) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
       const next = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
@@ -262,7 +270,7 @@ export default function FocusView() {
 
     container.addEventListener('wheel', onWheel, { passive: false });
     return () => container.removeEventListener('wheel', onWheel);
-  }, [focusedId, isHover]);
+  }, [focusedId, isHover, SIDE_PAD, V_PAD]);
 
   if (!focusedId || !tile) return null;
 
@@ -278,6 +286,8 @@ export default function FocusView() {
         pointerEvents: isMobileRef.current ? 'none' : 'auto',
         paddingLeft: SIDE_PAD,
         paddingRight: SIDE_PAD,
+        paddingTop: V_PAD,
+        paddingBottom: V_PAD,
       }}
     >
       <div
