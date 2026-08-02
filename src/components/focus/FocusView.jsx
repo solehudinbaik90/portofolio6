@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
+import { TILE_ASPECT_RATIOS_WH, TILE_ASPECT_CLASSES } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
 const OPEN_DUR          = 0.7;
@@ -13,8 +13,6 @@ const CLOSE_EASE        = 'power2.inOut';
 const CHROME_PADDING    = 224;
 const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
-// user requested huge vertical pad for landscape — set to 1_000_000
-const V_PAD_LANDSCAPE   = 1000000;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
@@ -53,13 +51,7 @@ export default function FocusView() {
     };
   }, []);
 
-  // Clamp requested V_PAD so layout stays usable:
-  // requested = V_PAD_LANDSCAPE when landscape, else 0
-  // maxAllowed = floor(viewportHeight / 2) - 1 (so we never consume whole viewport)
-  const requestedVPad = isLandscape ? V_PAD_LANDSCAPE : 0;
-  const viewportH = typeof window !== 'undefined' ? window.innerHeight : 768;
-  const maxAllowed = Math.max(0, Math.floor(viewportH / 2) - 1);
-  const V_PAD = Math.min(requestedVPad, maxAllowed);
+  const V_PAD = isLandscape ? 20 : 0;
 
   // ── Video helpers ─────────────────────────────────────────────────────────
   const playVideo = useCallback(() => {
@@ -261,71 +253,63 @@ export default function FocusView() {
   if (!focusedId || !tile) return null;
 
   const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
-  const tileIsLandscape = tile.size === 'ws' || tile.size === 'ls';
-  const focusVar    = tileIsLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
+  const isLandscape = tile.size === 'ws' || tile.size === 'ls';
+  const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  // NOTE: reduce horizontal available space by SIDE_PAD * 2 (left + right)
-  // and reduce effective height by V_PAD * 2 (top + bottom) to ensure vertical spacing.
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD * 2}px), calc((100dvh - ${CHROME_PADDING + V_PAD * 2}px) * ${aspectWH}))`;
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
     <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={tile.title ?? tile.id}
-      onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{
-        pointerEvents: isMobileRef.current ? 'none' : 'auto',
-        paddingTop: `calc(${V_PAD}px + env(safe-area-inset-top))`,
-        paddingBottom: `calc(${V_PAD}px + env(safe-area-inset-bottom))`,
-      }}
-    >
-      <div
-        ref={innerRef}
-        onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
-        style={{
-          width,
-          aspectRatio: `${aspectWH}`,
-          backgroundColor: tileColor(tile),
-          ...(isMobileRef.current ? { opacity: 0 } : undefined),
-        }}
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={tile.title ?? tile.id}
+        onClick={() => setFocusedId(null)}
+        className="fixed inset-0 z-10 flex items-center justify-center"
+        style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
       >
-        {tile.media.kind === 'video' ? (
-          <>
-            {tile.media.posterSrc && (
-              <img
-                src={tile.media.posterSrc}
-                alt=""
-                aria-hidden
-                draggable={false}
-                decoding={isMobileRef.current ? 'sync' : undefined}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+        <div
+          ref={innerRef}
+          onClick={(e) => e.stopPropagation()}
+          className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
+          style={{
+            width,
+            backgroundColor: tileColor(tile),
+          }}
+        >
+          {tile.media.kind === 'video' ? (
+            <>
+              {tile.media.posterSrc && (
+                <img
+                  src={tile.media.posterSrc}
+                  alt=""
+                  aria-hidden
+                  draggable={false}
+                  decoding={isMobileRef.current ? 'sync' : undefined}
+                  className="pointer-events-none absolute inset-0 size-full object-contain"
+                />
+              )}
+              <video
+                ref={videoRef}
+                src={tile.media.src}
+                autoPlay={isHover}
+                preload="auto"
+                loop
+                muted
+                playsInline
+                className="relative size-full object-contain"
               />
-            )}
-            <video
-              ref={videoRef}
+            </>
+          ) : (
+            <img
               src={tile.media.src}
-              autoPlay={isHover}
-              preload="auto"
-              loop
-              muted
-              playsInline
-              className="relative size-full object-cover"
+              alt=""
+              draggable={false}
+              decoding={isMobileRef.current ? 'sync' : undefined}
+              className="size-full object-contain"
             />
-          </>
-        ) : (
-          <img
-            src={tile.media.src}
-            alt=""
-            draggable={false}
-            decoding={isMobileRef.current ? 'sync' : undefined}
-            className="size-full object-cover"
-          />
-        )}
+          )}
+        </div>
       </div>
-    </div>
   );
 }
