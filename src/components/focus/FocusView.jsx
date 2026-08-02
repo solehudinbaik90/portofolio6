@@ -305,3 +305,4 @@ export default function FocusView() {
     </div>
   </div>
 );
+}
