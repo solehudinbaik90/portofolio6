@@ -10,15 +10,23 @@ const OPEN_DUR = 0.7;
 const OPEN_EASE = 'power2.inOut';
 const CLOSE_DUR = 0.7;
 const CLOSE_EASE = 'power2.inOut';
-const SIDE_PAD_DESKTOP = 64; // ruang kiri/kanan default desktop
-const SIDE_PAD_MOBILE = 24;  // ruang kiri/kanan mobile
-const V_PAD_DESKTOP = 48;    // ruang atas/bawah desktop (landscape)
-const V_PAD_MOBILE = 24;     // ruang atas/bawah mobile (portrait)
+
+const SIDE_PAD_DESKTOP = 64;
+const SIDE_PAD_MOBILE = 24;
+const V_PAD_DESKTOP = 48;
+const V_PAD_MOBILE = 24;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE = 'elastic.out(1, 0.5)';
 const MIN_SCALE = 1;
+
+function getVisualViewportSize() {
+  if (typeof window === 'undefined') return { w: 1024, h: 768, offsetTop: 0 };
+  const vv = window.visualViewport;
+  if (vv) return { w: vv.width, h: vv.height, offsetTop: vv.offsetTop || 0 };
+  return { w: window.innerWidth, h: window.innerHeight, offsetTop: 0 };
+}
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -39,33 +47,44 @@ export default function FocusView() {
 
   const tile = focusedId ? tilesById.get(focusedId) : null;
 
-  const [vp, setVp] = useState(() => ({
-    w: typeof window !== 'undefined' ? window.innerWidth : 1024,
-    h: typeof window !== 'undefined' ? window.innerHeight : 768,
-  }));
+  // viewport state driven from visualViewport when available
+  const [vp, setVp] = useState(() => getVisualViewportSize());
 
   useEffect(() => {
-    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
+    const vv = window.visualViewport;
+    const handler = () => setVp(getVisualViewportSize());
+    if (vv) {
+      vv.addEventListener('resize', handler);
+      vv.addEventListener('scroll', handler);
+    } else {
+      window.addEventListener('resize', handler);
+      window.addEventListener('orientationchange', handler);
+    }
     return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
+      if (vv) {
+        vv.removeEventListener('resize', handler);
+        vv.removeEventListener('scroll', handler);
+      } else {
+        window.removeEventListener('resize', handler);
+        window.removeEventListener('orientationchange', handler);
+      }
     };
   }, []);
 
   // responsive paddings
   const isMobile = vp.w < MOBILE_BREAKPOINT;
   const SIDE_PAD = isMobile ? SIDE_PAD_MOBILE : SIDE_PAD_DESKTOP;
-  // vertical pad slightly larger in landscape to give breathing room
   const isLandscape = vp.w > vp.h;
   const V_PAD = isMobile ? V_PAD_MOBILE : (isLandscape ? V_PAD_DESKTOP : Math.round(V_PAD_DESKTOP / 2));
 
-  // compute final numeric width/height using vertical padding
+  // compute final numeric width/height using visual viewport size (so we avoid toolbar/addressbar cropping)
   const { finalWidth, finalHeight } = useMemo(() => {
     if (!tile) return { finalWidth: 0, finalHeight: 0 };
 
-    const ratio = tile.ratio || (tile.naturalWidth && tile.naturalHeight ? tile.naturalWidth / tile.naturalHeight : 1);
+    const ratio =
+      tile.ratio ||
+      (tile.naturalWidth && tile.naturalHeight ? tile.naturalWidth / tile.naturalHeight : 1);
+
     const maxW = Math.max(0, vp.w - SIDE_PAD * 2);
     const maxH = Math.max(0, vp.h - V_PAD * 2);
 
@@ -106,7 +125,7 @@ export default function FocusView() {
     }
   }, [isHover, playVideo]);
 
-  // OPEN animation
+  // OPEN animation (same logic as before)
   useLayoutEffect(() => {
     if (!focusedId || !source || !innerRef.current) return;
     const inner = innerRef.current;
@@ -117,7 +136,7 @@ export default function FocusView() {
     scaleRef.current = 1;
     gsap.set(inner, { clearProps: 'all' });
 
-    const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+    const mobile = vp.w < MOBILE_BREAKPOINT;
     isMobileRef.current = mobile;
 
     if (mobile) {
@@ -177,7 +196,7 @@ export default function FocusView() {
       openTlRef.current?.kill();
       clearTimeout(videoTimer.current);
     };
-  }, [focusedId, source, playVideo, schedulePlay, isHover]);
+  }, [focusedId, source, vp.w, vp.h, isHover, playVideo, schedulePlay]);
 
   // CLOSE animation
   useEffect(() => {
@@ -242,15 +261,13 @@ export default function FocusView() {
       e.preventDefault();
 
       const dims = scaleRef._dims ?? inner.getBoundingClientRect();
-      const maxH = (window.innerHeight - V_PAD * 2) / dims.h;
-      const maxW = (window.innerWidth - SIDE_PAD * 2) / dims.w;
+      const maxH = (vp.h - V_PAD_DESKTOP * 2) / dims.h;
+      const maxW = (vp.w - SIDE_PAD_DESKTOP * 2) / dims.w;
       const maxScale = Math.max(MIN_SCALE, Math.min(maxH, maxW));
       const next = Math.min(maxScale, Math.max(MIN_SCALE, scaleRef.current - e.deltaY * WHEEL_SCALE_SPEED));
 
       if (next === scaleRef.current) {
-        const atMax = e.deltaY < 0 && next >= maxScale - 0.001;
-        const atMin = e.deltaY > 0 && next <= MIN_SCALE + 0.001;
-        if ((atMax || atMin) && !snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
+        if (!snapAnimRef.current?.isActive() && !scaleAnimRef.current?.isActive()) {
           snapAnimRef.current = gsap.timeline()
             .to(inner, { x: -16, duration: 0.06, ease: 'power2.out' })
             .to(inner, { x: 16, duration: 0.08, ease: 'power2.inOut' })
@@ -270,7 +287,7 @@ export default function FocusView() {
 
     container.addEventListener('wheel', onWheel, { passive: false });
     return () => container.removeEventListener('wheel', onWheel);
-  }, [focusedId, isHover, SIDE_PAD, V_PAD]);
+  }, [focusedId, isHover, vp]);
 
   if (!focusedId || !tile) return null;
 
