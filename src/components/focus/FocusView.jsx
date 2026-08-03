@@ -250,7 +250,8 @@ export default function FocusView() {
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      style={{ maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
+      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
       <div
         ref={innerRef}
