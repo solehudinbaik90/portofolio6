@@ -255,15 +255,13 @@ export default function FocusView() {
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative min-h-0 min-w-0 overflow-hidden rounded-lg will-change-transform"
+        className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-      width,
-      aspectRatio: `${aspectWH}`,
-      maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
-      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
-      backgroundColor: tileColor(tile),
-      ...(isMobileRef.current ? { opacity: 0 } : undefined),
-    }}
+          width,
+          aspectRatio: `${aspectWH}`,
+          backgroundColor: tileColor(tile),
+          ...(isMobileRef.current ? { opacity: 0 } : undefined),
+        }}
       >
         {tile.media.kind === 'video' ? (
           <>
