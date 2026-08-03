@@ -240,26 +240,29 @@ export default function FocusView() {
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
-
   return (
     <div
-     ref={containerRef}
-     role="dialog"
-     aria-modal="true"
-     aria-label={tile.title ?? tile.id}
-     onClick={() => setFocusedId(null)}
-     className="fixed inset-0 z-10 flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-     style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
-     >
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={tile.title ?? tile.id}
+      onClick={() => setFocusedId(null)}
+      className="fixed inset-0 z-10 flex items-center justify-center"
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+    >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          backgroundColor: tileColor(tile),
-          ...(isMobileRef.current ? { opacity: 0 } : undefined),
-        }}
+        aspectRatio: `${aspectWH}`,
+        width: 'auto',
+        height: 'auto',
+        maxWidth: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px))`,
+        maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
+        backgroundColor: tileColor(tile),
+        ...(isMobileRef.current ? { opacity: 0 } : undefined),
+      }}
       >
         {tile.media.kind === 'video' ? (
           <>
