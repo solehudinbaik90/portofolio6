@@ -249,7 +249,7 @@ export default function FocusView() {
      aria-modal="true"
      aria-label={tile.title ?? tile.id}
      onClick={() => setFocusedId(null)}
-     className="fixed inset-0 z-10 flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+     className="fixed inset-0 z-10 flex items-center justify-center"
      style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
      >
       <div
