@@ -10,8 +10,8 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 224;
-const SIDE_PAD          = 64;
+const CHROME_PADDING    = 1000;
+const SIDE_PAD          = 500;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -257,7 +257,11 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className="relative min-h-0 min-w-0 overflow-hidden rounded-lg will-change-transform"
         style={{
-          backgroundColor: tileColor(tile),
+      width,
+      aspectRatio: `${aspectWH}`,
+      maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
+      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
+      backgroundColor: tileColor(tile),
       ...(isMobileRef.current ? { opacity: 0 } : undefined),
     }}
       >
