@@ -46,12 +46,12 @@ export function TileProvider({ children }) {
 
     Promise.all(
       ALL_TILES.map(async (tile) => {
-        const size = await detectSize(tile.media);
+        const { size, ratio, naturalWidth, naturalHeight } = await detectSize(tile.media);
         if (!cancelled) {
           loaded++;
           setProgress(loaded / total);
         }
-        return { ...tile, size };
+        return { ...tile, size, ratio, naturalWidth, naturalHeight };
       })
     ).then((result) => {
       if (!cancelled) {
