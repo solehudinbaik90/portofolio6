@@ -10,7 +10,7 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 224;
+const CHROME_PADDING    = 500;
 const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
@@ -240,6 +240,12 @@ export default function FocusView() {
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
+  const width = min(
+  ${focusVar},
+  calc(100vw - ${SIDEPAD}px - env(safe-area-inset-left) - env(safe-area-inset-right)),
+  calc((100dvh - ${CHROMEPADDING}px)  ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom))
+);
+
   return (
     <div
       ref={containerRef}
@@ -255,14 +261,11 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-        aspectRatio: `${aspectWH}`,
-        width: 'auto',
-        height: 'auto',
-        maxWidth: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px))`,
-        maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
-        backgroundColor: tileColor(tile),
-        ...(isMobileRef.current ? { opacity: 0 } : undefined),
-      }}
+          width,
+          aspectRatio: `${aspectWH}`,
+          backgroundColor: tileColor(tile),
+          ...(isMobileRef.current ? { opacity: 0 } : undefined),
+        }}
       >
         {tile.media.kind === 'video' ? (
           <>
