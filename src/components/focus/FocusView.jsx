@@ -247,7 +247,7 @@ export default function FocusView() {
       ref={containerRef}
       role="dialog"
       aria-modal="true"
-      aria-label={tile.title ?? tile.id}
+      aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
       style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
