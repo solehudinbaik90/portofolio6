@@ -244,25 +244,24 @@ export default function FocusView() {
 
   return (
     <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={tile.title ?? tile.id}
-      onClick={() => setFocusedId(null)}
-      className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+    role="dialog"
+    aria-modal="true"
+    aria-label={tile.title ?? tile.id}
+    onClick={() => setFocusedId(null)}
+    className="fixed inset-0 z-10 flex items-center justify-center"
+    style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
-      <div
-        ref={innerRef}
+        <div
+        ref={containerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative overflow-hidden rounded-lg will-change-transform"
-        style={{
-          width,
-          aspectRatio: `${aspectWH}`,
-          backgroundColor: tileColor(tile),
-          ...(isMobileRef.current ? { opacity: 0 } : undefined),
-        }}
-      >
+        className="relative min-h-0 min-w-0"
+        style={{ width, aspectRatio: `${aspectWH}` }}
+        >
+            <div
+            ref={innerRef}
+            className="relative size-full overflow-hidden rounded-lg will-change-transform"
+            style={{ backgroundColor: tileColor(tile), ...(isMobileRef.current ? { opacity: 0 } : undefined) }}
+            >
         {tile.media.kind === 'video' ? (
           <>
             {tile.media.posterSrc && (
@@ -296,6 +295,7 @@ export default function FocusView() {
           />
         )}
       </div>
-    </div>
+  </div>
+</div>
   );
 }
