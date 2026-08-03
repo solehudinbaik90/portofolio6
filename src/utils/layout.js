@@ -1,18 +1,18 @@
 export const TILE_ASPECT_RATIOS_HW = {
-  ws: 9 / 16,
-  ls: 3 / 4,
-  sq: 1,
-  md: 1 / 10,
-  lg: 5 / 4,
+  ws: 1 / 30,
+  ls: 1 / 40,
+  sq: 2,
+  md: 1 / 60,
+  lg: 1 / 50,
 };
 
 
 export const TILE_ASPECT_RATIOS_WH = {
-  ws: 16 / 9,
-  ls: 4 / 3,
-  sq: 1,
-  md: 10 / 1,
-  lg: 4 / 5,
+  ws: 30 / 1,
+  ls: 40 / 1,
+  sq: 2,
+  md: 60 / 1,
+  lg: 50 / 1,
 };
 
 export const TILE_ASPECT_CLASSES = {
