@@ -10,7 +10,7 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 5000;
+const CHROME_PADDING    = 224;
 const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
@@ -240,11 +240,7 @@ export default function FocusView() {
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  const width = min(
-  ${focusVar},
-  calc(100vw - ${SIDEPAD}px - env(safe-area-inset-left) - env(safe-area-inset-right)),
-  calc((100dvh - ${CHROMEPADDING}px)  ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom))
-);
+  const width = min(${focusVar}, calc(100vw - ${SIDE_PAD}px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
 
   return (
     <div
