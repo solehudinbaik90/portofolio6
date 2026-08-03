@@ -260,7 +260,7 @@ export default function FocusView() {
       aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto',
+      style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto',
       }}
     >
       <div
@@ -268,7 +268,6 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
         style={{
-          width,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current && { opacity: MOBILE_OPACITY }),
         }}
