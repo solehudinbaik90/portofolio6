@@ -10,8 +10,8 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 0;
-const SIDE_PAD          = 0;
+const CHROME_PADDING    = 224;
+const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -239,8 +239,9 @@ export default function FocusView() {
   const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
-  
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px - env(safe-area-inset-left) - env(safe-area-inset-right) - env(safe-area-inset-left) - env(safe-area-inset-right) - env(safe-area-inset-left) - env(safe-area-inset-right) - env(safe-area-inset-left) - env(safe-area-inset-right) - env(safe-area-inset-left) - env(safe-area-inset-right) - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom)))`;
+
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
+
   return (
     <div
       ref={containerRef}
@@ -257,7 +258,7 @@ export default function FocusView() {
         className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
           width,
-          aspectRatio: `1/${aspectWH}`,
+          aspectRatio: `${aspectWH}`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
