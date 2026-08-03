@@ -259,8 +259,6 @@ export default function FocusView() {
         style={{
       width,
       aspectRatio: `${aspectWH}`,
-      maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
-      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
       backgroundColor: tileColor(tile),
       ...(isMobileRef.current ? { opacity: 0 } : undefined),
     }}
