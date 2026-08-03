@@ -260,8 +260,7 @@ export default function FocusView() {
       aria-label={tile.description ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{
-        pointerEvents: isMobileRef.current ? 'none' : 'auto',
+      style={{ aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto',
       }}
     >
       <div
