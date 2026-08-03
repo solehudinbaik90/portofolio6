@@ -10,8 +10,8 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 1000;
-const SIDE_PAD          = 500;
+const CHROME_PADDING    = 224;
+const SIDE_PAD          = 64;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
@@ -250,8 +250,7 @@ export default function FocusView() {
       aria-label={tile.title ?? tile.id}
       onClick={() => setFocusedId(null)}
       className="fixed inset-0 z-10 flex items-center justify-center"
-      style={{ maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
-      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
       <div
         ref={innerRef}
@@ -260,6 +259,8 @@ export default function FocusView() {
         style={{
       width,
       aspectRatio: `${aspectWH}`,
+      maxWidth: `calc(100vw - ${SIDE_PAD}px)`,
+      maxHeight: `calc(100dvh - ${CHROME_PADDING}px)`,
       backgroundColor: tileColor(tile),
       ...(isMobileRef.current ? { opacity: 0 } : undefined),
     }}
