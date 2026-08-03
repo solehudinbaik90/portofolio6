@@ -239,8 +239,8 @@ export default function FocusView() {
   const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
-
-  const width = min(${focusVar}, calc(100vw - ${SIDE_PAD}px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  
+  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH} - env(safe-area-inset-top) - env(safe-area-inset-bottom)))`;
 
   return (
     <div
