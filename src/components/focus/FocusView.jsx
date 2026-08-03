@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { TILE_ASPECT_CLASSES, TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
+import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
 const OPEN_DUR          = 0.7;
@@ -249,15 +249,15 @@ export default function FocusView() {
      aria-modal="true"
      aria-label={tile.title ?? tile.id}
      onClick={() => setFocusedId(null)}
-     className="fixed inset-0 z-10 flex items-center justify-center"
+     className="fixed inset-0 z-10 flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
      style={{ width, aspectRatio: `${aspectWH}`, pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
      >
       <div
         ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
+        className="relative overflow-hidden rounded-lg will-change-transform"
         style={{
-          width, backgroundColor: tileColor(tile),
+          backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
         }}
       >
