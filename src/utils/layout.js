@@ -2,7 +2,7 @@ export const TILE_ASPECT_RATIOS_HW = {
   ws: 9 / 16,
   ls: 3 / 4,
   sq: 1,
-  md: 4 / 3,
+  md: 1 / 10,
   lg: 5 / 4,
 };
 
@@ -11,7 +11,7 @@ export const TILE_ASPECT_RATIOS_WH = {
   ws: 16 / 9,
   ls: 4 / 3,
   sq: 1,
-  md: 3 / 4,
+  md: 10 / 1,
   lg: 4 / 5,
 };
 
