@@ -6,7 +6,6 @@ export const TILE_ASPECT_RATIOS_HW = {
   lg: 5 / 4,
 };
 
-
 export const TILE_ASPECT_RATIOS_WH = {
   ws: 16 / 9,
   ls: 4 / 3,
@@ -24,8 +23,14 @@ export const TILE_ASPECT_CLASSES = {
 };
 
 export const TILE_GAP = 16;
-
 export const NUM_COLS = 7;
+
+const MIN_REPEAT = 2;
+const COL_WIDTH_BASE = 216;
+const COL_WIDTH_MD = 360;
+const COL_WIDTH_XL = 480;
+const BREAKPOINT_MD = 768;
+const BREAKPOINT_XL = 1920;
 
 export function tileColumnHeight(tiles, colWidth) {
   if (!tiles || tiles.length === 0) return 0;
@@ -35,21 +40,22 @@ export function tileColumnHeight(tiles, colWidth) {
   );
 }
 
-export function distributeToColumns(tiles, numCols) {
+
+export function distributeToColumns(tiles, numCols = NUM_COLS) {
   const cols = Array.from({ length: numCols }, () => []);
   if (!tiles || tiles.length === 0) return cols;
 
-  const currentCw = getColWidth();
-  const heights = Array(numCols).fill(0);
+  const weights = Array(numCols).fill(0);
 
   for (const tile of tiles) {
     let shortest = 0;
     for (let i = 1; i < numCols; i++) {
-      if (heights[i] < heights[shortest]) shortest = i;
+      if (weights[i] < weights[shortest]) shortest = i;
     }
     cols[shortest].push(tile);
-    heights[shortest] += (TILE_ASPECT_RATIOS_HW[tile.size ?? 'sq'] * currentCw) + TILE_GAP;
+    weights[shortest] += TILE_ASPECT_RATIOS_HW[tile.size ?? 'sq'] || 1;
   }
+
 
   for (let i = 0; i < numCols; i++) {
     if (cols[i].length > 0) continue;
@@ -64,24 +70,25 @@ export function distributeToColumns(tiles, numCols) {
   return cols;
 }
 
-
-
 export function getColWidth() {
-  if (typeof window === 'undefined') return 216;
-  if (window.innerWidth >= 1920) return 480;
-  if (window.innerWidth >= 768) return 360;
-  return 216;
+  if (typeof window === 'undefined') return COL_WIDTH_BASE;
+  if (window.innerWidth >= BREAKPOINT_XL) return COL_WIDTH_XL;
+  if (window.innerWidth >= BREAKPOINT_MD) return COL_WIDTH_MD;
+  return COL_WIDTH_BASE;
 }
 
+function repeatCount(viewportSize, unitSize) {
+  if (unitSize <= 0) return MIN_REPEAT;
+  return Math.max(MIN_REPEAT, Math.ceil(viewportSize / unitSize) + 1);
+}
 
 export function calcRepeatX(viewW, numCols, colWidth) {
   const totalW = numCols * (colWidth + TILE_GAP);
-  return Math.max(2, Math.ceil(viewW / totalW) + 1);
+  return repeatCount(viewW, totalW);
 }
 
 export function calcRepeatY(viewH, colHeight) {
-  if (colHeight <= 0) return 2;
-  return Math.max(2, Math.ceil(viewH / colHeight) + 1);
+  return repeatCount(viewH, colHeight);
 }
 
 export function wrapMod(n, total) {
