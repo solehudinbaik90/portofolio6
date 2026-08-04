@@ -10,13 +10,13 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 0.00009;
+const CHROME_PADDING    = 300000000;
 const SIDE_PAD          = 0.00007;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
-const MIN_SCALE         = 20;
+const MIN_SCALE         = 1;
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
