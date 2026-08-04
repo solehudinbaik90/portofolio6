@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ALL_TILES } from '../data/tiles';
+import { getProject } from '../data/projects';
 import { usePopup } from './PopupContext';
 import { detectSize } from '../utils/media';
 import { distributeToColumns, NUM_COLS } from '../utils/layout';
 
-const TRANSITION_DURATION_MS = 480;
+const TRANSITION_DURATION_S = 0.6;
+const TRANSITION_DELAY_FACTOR = 0.8;
+const TRANSITION_DURATION_MS = TRANSITION_DURATION_S * TRANSITION_DELAY_FACTOR * 1000;
 
 const TileContext = createContext(null);
 
@@ -17,76 +20,92 @@ function shuffled(arr) {
   return a;
 }
 
+
+function validateTiles() {
+  for (const tile of ALL_TILES) {
+    if (tile.projectSlug && !getProject(tile.projectSlug)) {
+      return `Tile "${tile.id}" references missing project "${tile.projectSlug}"`;
+    }
+  }
+  return null;
+}
+
+
+const TILES_ERROR = validateTiles();
+
 export function TileProvider({ children }) {
   const { category } = usePopup();
 
   const [tiles, setTiles] = useState([]);
   const [tilesById, setTilesById] = useState(new Map());
-  const [ready, setReady] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [nonce, setNonce] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(category);
-  const [chromeRevealed, setChromeRevealed] = useState(false);
 
+  const [activeCategory, setActiveCategory] = useState(category);
   const categoryRef = useRef(category);
   categoryRef.current = category;
-  const inTransition = useRef(false);
+
+  const [nonce, setNonce] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
+  const inTransitionRef = useRef(false);
+
+  const [progress, setProgress] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [chromeRevealed, setChromeRevealed] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    let loaded = 0;
-    const total = ALL_TILES.length;
 
-    if (total === 0) {
+    if (TILES_ERROR) {
+      setReady(true);
+      return;
+    }
+    if (ALL_TILES.length === 0) {
       setProgress(1);
       setReady(true);
       return;
     }
 
+    let cancelled = false;
+    let loaded = 0;
+    const total = ALL_TILES.length;
+
     Promise.all(
       ALL_TILES.map(async (tile) => {
-        const { size, ratio, naturalWidth, naturalHeight } = await detectSize(tile.media);
+        const size = await detectSize(tile.media);
         if (!cancelled) {
           loaded++;
           setProgress(loaded / total);
         }
-        return { ...tile, size, ratio, naturalWidth, naturalHeight };
+        return { ...tile, size };
       })
     ).then((result) => {
-      if (!cancelled) {
-        setTiles(shuffled(result));
-        setTilesById(new Map(result.map((t) => [t.id, t])));
-        setReady(true);
-      }
+      if (cancelled) return;
+      setTilesById(new Map(result.map((t) => [t.id, t])));
+      setTiles(shuffled(result));
+      setReady(true);
     });
 
     return () => { cancelled = true; };
   }, []);
 
   const triggerTransition = useCallback(() => {
-    if (inTransition.current) return;
-    inTransition.current = true;
+    if (inTransitionRef.current) return;
+    inTransitionRef.current = true;
     setTransitioning(true);
     window.setTimeout(() => {
       setActiveCategory(categoryRef.current);
       setNonce((n) => n + 1);
       setTransitioning(false);
-      inTransition.current = false;
+      inTransitionRef.current = false;
     }, TRANSITION_DURATION_MS);
   }, []);
 
   useEffect(() => {
-    if (category !== activeCategory) triggerTransition();
+    if (category !== activeCategory && !inTransitionRef.current) triggerTransition();
   }, [category, activeCategory, triggerTransition]);
 
   const revealChrome = useCallback(() => setChromeRevealed(true), []);
 
   const filteredTiles = useMemo(
-    () =>
-      activeCategory === 'everything'
-        ? tiles
-        : tiles.filter((t) => t.category === activeCategory),
+    () => (activeCategory === 'everything' ? tiles : tiles.filter((t) => t.category === activeCategory)),
     [tiles, activeCategory]
   );
 
@@ -102,6 +121,7 @@ export function TileProvider({ children }) {
         tilesById,
         nonce,
         transitioning,
+        error: TILES_ERROR,
         progress,
         ready,
         chromeRevealed,
