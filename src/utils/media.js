@@ -1,3 +1,5 @@
+import { isHoverDevice } from '../hooks/useHoverDevice';
+
 const _imgCache = [];
 
 /** @returns {Promise<{width: number, height: number} | null>} */
@@ -27,6 +29,11 @@ function detectVideoDims(media) {
   });
 }
 
+/** @returns {Promise<{width: number, height: number} | null>} */
+export function detectMediaDims(media) {
+  return media.kind === 'video' ? detectVideoDims(media) : detectImageDims(media.src);
+}
+
 const SIZE_MAP = [
   [0.656, 'ws'],
   [0.875, 'ls'],
@@ -43,22 +50,12 @@ export function dimsToSize(width, height) {
   return 'md';
 }
 
-/** @returns {Promise<string>} */
-export async function detectSize(media) {
-  const dims =
-    media.kind === 'video'
-      ? await detectVideoDims(media)
-      : await detectImageDims(media.src);
-  if (!dims || !dims.width || !dims.height) {
-    return { size: 'sq', ratio: 1, naturalWidth: 0, naturalHeight: 0 };
-  }
 
-  return {
-    size: dimsToSize(dims.width, dims.height),
-    ratio: dims.width / dims.height,
-    naturalWidth: dims.width,
-    naturalHeight: dims.height,
-  };
+/** @returns {Promise<'ws'|'ls'|'sq'|'md'|'lg'>} */
+
+export async function detectSize(media) {
+  const dims = await detectMediaDims(media);
+  return dims ? dimsToSize(dims.width, dims.height) : 'sq';
 }
 
 export function primeVideo(el) {
@@ -77,11 +74,13 @@ export function primeVideo(el) {
 }
 
 export function playTileVideo(tileEl) {
+  if (!isHoverDevice()) return;
   const v = tileEl?.querySelector('video');
   if (v && v.paused) v.play().catch(() => {});
 }
 
 export function pauseTileVideo(tileEl) {
+  if (!isHoverDevice()) return;
   const v = tileEl?.querySelector('video');
   if (v && !v.paused) {
     v.pause();
