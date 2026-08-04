@@ -236,7 +236,7 @@ export default function FocusView() {
   // ── Render ────────────────────────────────────────────────────────────────
   if (!focusedId || !tile) return null;
 
-  const aspectWH    = TILE_ASPECT_RATIOS_WH[tile.size] ?? 1;
+  const aspectWH = TILE_ASPECT_RATIOS_WH[tile.size];
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
