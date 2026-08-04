@@ -10,13 +10,13 @@ const OPEN_DUR          = 0.7;
 const OPEN_EASE         = 'power2.inOut';
 const CLOSE_DUR         = 0.7;
 const CLOSE_EASE        = 'power2.inOut';
-const CHROME_PADDING    = 1000;
-const SIDE_PAD          = 30000;
+const CHROME_PADDING    = 0.00009;
+const SIDE_PAD          = 0.00007;
 const MOBILE_BREAKPOINT = 768;
 const VIDEO_DELAY_MS    = 120;
 const WHEEL_SCALE_SPEED = 0.002;
 const SNAP_EASE         = 'elastic.out(1, 0.5)';
-const MIN_SCALE         = 1;
+const MIN_SCALE         = 20;
 
 export default function FocusView() {
   const { focusedId, source, isClosing, setFocusedId, finishClose } = useFocus();
@@ -256,7 +256,7 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
         style={{
-          height: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`,
+          width: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
           translate: 'none',
