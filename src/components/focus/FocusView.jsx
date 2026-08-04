@@ -256,7 +256,7 @@ export default function FocusView() {
         onClick={(e) => e.stopPropagation()}
         className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
         style={{
-          width: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`,
+          height: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`,
           backgroundColor: tileColor(tile),
           ...(isMobileRef.current ? { opacity: 0 } : undefined),
           translate: 'none',
