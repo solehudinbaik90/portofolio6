@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { useFocus } from '../../contexts/FocusContext';
 import { useTiles } from '../../contexts/TileContext';
 import { useHoverDevice } from '../../hooks/useHoverDevice';
-import { TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
+import { TILE_ASPECT_CLASSES, TILE_ASPECT_RATIOS_WH } from '../../utils/layout';
 import { tileColor } from '../../utils/color';
 
 const OPEN_DUR          = 0.7;
@@ -240,28 +240,31 @@ export default function FocusView() {
   const isLandscape = tile.size === 'ws' || tile.size === 'ls';
   const focusVar    = isLandscape ? 'var(--tile-focus-w-landscape)' : 'var(--tile-focus-w)';
 
-  const width = `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`;
 
   return (
     <div
-    role="dialog"
-    aria-modal="true"
-    aria-label={tile.title ?? tile.id}
-    onClick={() => setFocusedId(null)}
-    className="fixed inset-0 z-10 flex items-center justify-center"
-    style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={tile.title ?? tile.id}
+      onClick={() => setFocusedId(null)}
+      className="fixed inset-0 z-10 flex items-center justify-center"
+      style={{ pointerEvents: isMobileRef.current ? 'none' : 'auto' }}
     >
-        <div
-        ref={containerRef}
+      <div
+        ref={innerRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative min-h-0 min-w-0"
-        style={{ width, aspectRatio: `${aspectWH}` }}
-        >
-            <div
-            ref={innerRef}
-            className="relative size-full overflow-hidden rounded-lg will-change-transform"
-            style={{ backgroundColor: tileColor(tile), ...(isMobileRef.current ? { opacity: 0 } : undefined) }}
-            >
+        className={`${TILE_ASPECT_CLASSES[tile.size]} relative overflow-hidden rounded-lg will-change-transform`}
+        style={{
+          width: `min(${focusVar}, calc(100vw - ${SIDE_PAD}px), calc((100dvh - ${CHROME_PADDING}px) * ${aspectWH}))`,
+          backgroundColor: tileColor(tile),
+          ...(isMobileRef.current ? { opacity: 0 } : undefined),
+          translate: 'none',
+          rotate: 'none',
+          scale: 'none',
+          transform: 'translate(0px, 0px)',
+        }}
+      >
         {tile.media.kind === 'video' ? (
           <>
             {tile.media.posterSrc && (
@@ -295,7 +298,6 @@ export default function FocusView() {
           />
         )}
       </div>
-  </div>
-</div>
+    </div>
   );
 }
